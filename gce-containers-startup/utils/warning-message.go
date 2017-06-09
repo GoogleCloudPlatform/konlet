@@ -20,6 +20,17 @@ import (
 
 const WARNING_SCRIPT = `#!/bin/bash
 echo -e "\033[0;33m                                                             \033[0m"
+echo -e "\033[0;33m                   >>\.                                      \033[0m"
+echo -e "\033[0;33m                  /_  )'.                                    \033[0m"
+echo -e "\033[0;33m                 /  _)'^)'.   ___.---. _                     \033[0m"
+echo -e "\033[0;33m                (_,' \  '^-)\"\"        '.--__               \033[0m"
+echo -e "\033[0;33m                      \                |'-##-.               \033[0m"
+echo -e "\033[0;33m                   ____)               /   \#^\              \033[0m"
+echo -e "\033[0;33m                  (  ___/--._____.-\  (_    WW\              \033[0m"
+echo -e "\033[0;33m                   ^_\_             \ \_^-._                 \033[0m"
+echo -e "\033[0;33m                   //._]             )/ --,_\                \033[0m"
+echo -e "\033[0;33m                  /_>               |_>                      \033[0m"
+echo -e "\033[0;33m                                                             \033[0m"
 echo -e "\033[0;33m  ########################[ Warning ]########################\033[0m"
 echo -e "\033[0;33m  #  You have logged in to the guest OS.                    #\033[0m"
 echo -e "\033[0;33m  #  To access your containers use 'docker attach' command  #\033[0m"
