@@ -14,11 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Exit the script if any command has an error.
-set -o errexit
-
 readonly GET_METADATA_VALUE='/usr/bin/get_metadata_value'
-${GET_METADATA_VALUE} "attributes/gce-container-declaration"
+SPEC=$(${GET_METADATA_VALUE} "attributes/gce-container-declaration")
 
 if [[ $? -ne 0 ]]; then
   echo "No metadata present - not running containers"
