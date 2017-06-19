@@ -26,9 +26,10 @@ if [[ IS_CONTAINER_SPEC -eq 0 ]]; then
 fi
 
 docker run --privileged \
+  --log-driver=gcplogs \
+  --net="host" \
   -v=/var/run/docker.sock:/var/run/docker.sock \
   -v=/etc/profile.d:/host/etc/profile.d \
-  --net="host" \
-  gcr.io/gce-containers/konlet:v.0.6 \
+  gcr.io/gce-containers/konlet:v.0.7 \
   2>&1 >/dev/ttyS1
 
