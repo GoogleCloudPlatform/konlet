@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[Unit]
-Description=Containers on GCE Setup
-Requires=network-online.target
-After=network-online.target
+# Exit the script if any command has an error.
+set -o errexit
 
-[Service]
-ExecStart=/var/lib/google/gce-containers-konlet.sh
-Restart=on-failure
-RestartSec=5
+readonly GET_METADATA_VALUE='/usr/bin/get_metadata_value'
+${GET_METADATA_VALUE} "attributes/gce-container-declaration"
 
-[Install]
-WantedBy=multi-user.target
+if [[ $? -ne 0 ]]; then
+  echo "No metadata present - not running containers"
+  exit 0
+fi
+
+docker run --rm --privileged \
+  --log-driver=gcplogs \
+  --net="host" \
+  -v=/var/run/docker.sock:/var/run/docker.sock \
+  -v=/etc/profile.d:/host/etc/profile.d \
+  gcr.io/gce-containers/konlet:v.0.7
 
