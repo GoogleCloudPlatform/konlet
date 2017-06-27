@@ -72,13 +72,13 @@ func GetDefaultRunner() (*ContainerRunner, error) {
 	return &ContainerRunner{Client: dockerClient,}, nil
 }
 
-func (runner ContainerRunner) RunContainer(auth string, spec api.Container, detach bool) error {
-	err := pullImage(runner.Client, auth, spec)
+func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
+	err := pullImage(runner.Client, auth, spec.Containers[0])
 	if err != nil {
 		return err
 	}
 
-	err = deleteOldContainer(runner.Client, spec)
+	err = deleteOldContainer(runner.Client, spec.Containers[0])
 	if err != nil {
 		return err
 	}
@@ -166,44 +166,75 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
 }
 
-func createContainer(dockerClient DockerApiClient, spec api.Container) (string, error) {
+func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	container := spec.Containers[0]
 	var runCommand dockerstrslice.StrSlice
-	if spec.Command != "" {
-		runCommand = dockerstrslice.StrSlice([]string{spec.Command})
+	if container.Command != nil {
+		runCommand = dockerstrslice.StrSlice(container.Command)
 	}
 
 	var runArgs dockerstrslice.StrSlice
-	if spec.Args != nil {
-		runArgs = dockerstrslice.StrSlice(spec.Args)
+	if container.Args != nil {
+		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
 	hostPathBinds := []string{}
 	tmpFsBinds := map[string]string{}
+
+	volumesMap := map[string]api.Volume{}
 	for _, apiVolume := range spec.Volumes {
+		volumesMap[apiVolume.Name] = apiVolume
+	}
+
+	volumeMountMap := map[string]int{}
+	for _, apiVolumeMount := range container.VolumeMounts {
+		volumeMountMap[apiVolumeMount.Name] = 0
+	}
+
+	log.Printf("Mounting %d volumes", len(container.VolumeMounts))
+	for _, apiVolumeMount := range container.VolumeMounts {
 		volumesInSpec := 0
+		apiVolume, volumeExists := volumesMap[apiVolumeMount.Name]
+
+		if (!volumeExists) {
+			return "", fmt.Errorf("Undeclared volume '%s' declared for mounting", apiVolumeMount.Name)
+		}
+
 		if apiVolume.HostPath != nil {
 			volumesInSpec++
-			hostPathBinds = append(hostPathBinds, fmt.Sprintf("%s:%s", apiVolume.HostPath.Path, apiVolume.HostPath.MountPath))
+			hostPathBind := fmt.Sprintf("%s:%s", apiVolume.HostPath.Path, apiVolumeMount.MountPath)
+			hostPathBinds = append(hostPathBinds, hostPathBind)
 		}
-		if apiVolume.Tmpfs != nil {
+		if apiVolume.EmptyDir != nil {
 			volumesInSpec++
 			tmpFsOpts := []string{}
-			if apiVolume.Tmpfs.Size != "" {
-				tmpFsOpts = append(tmpFsOpts, fmt.Sprintf("size=%s", apiVolume.Tmpfs.Size))
-			}
+			//if apiVolume.EmptyDir.Size != "" {
+			//	tmpFsOpts = append(tmpFsOpts, fmt.Sprintf("size=%s", apiVolume.EmptyDir.Size))
+			//}
 
-			tmpFsBinds[apiVolume.Tmpfs.MountPath] = strings.Join(tmpFsOpts, ",")
+			if (apiVolume.EmptyDir.Medium != "Memory") {
+				return "", fmt.Errorf("Unsupported EmptyDir medium '%s'", apiVolume.EmptyDir.Medium)
+			}
+			tmpFsBinds[apiVolumeMount.MountPath] = strings.Join(tmpFsOpts, ",")
 		}
 		if volumesInSpec != 1 {
 			return "", fmt.Errorf("Volume expected to have single entry, %d found", volumesInSpec)
 		}
 	}
 
+	// Check for unreferenced volumes
+	for _, apiVolume := range spec.Volumes {
+		_, volumeMountExists := volumeMountMap[apiVolume.Name]
+		if (!volumeMountExists) {
+			return "", fmt.Errorf("Unmounted volume '%s' declared", apiVolume.Name)
+		}
+	}
+
 	env := []string{}
-	for _, envVar := range spec.Env {
+	for _, envVar := range container.Env {
 		env = append(env, fmt.Sprintf("%s=\"%s\"", envVar.Name, envVar.Value))
 	}
 
@@ -213,21 +244,21 @@ func createContainer(dockerClient DockerApiClient, spec api.Container) (string, 
 	}
 
 	opts := dockertypes.ContainerCreateConfig{
-		Name: spec.Name,
+		Name: container.Name,
 		Config: &dockercontainer.Config{
 			Entrypoint: runCommand,
 			Cmd:        runArgs,
-			Image:      spec.Image,
+			Image:      container.Image,
 			Env:        env,
-			StdinOnce:  spec.StdIn,
-			Tty:        spec.Tty,
+			StdinOnce:  container.StdIn,
+			Tty:        container.Tty,
 		},
 		HostConfig: &dockercontainer.HostConfig{
 			Binds: hostPathBinds,
 			Tmpfs: tmpFsBinds,
 			AutoRemove: true,
 			NetworkMode: "host",
-			Privileged: spec.SecurityContext.Privileged,
+			Privileged: container.SecurityContext.Privileged,
 			LogConfig: logConfig,
 		},
 	}
