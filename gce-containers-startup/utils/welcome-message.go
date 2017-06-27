@@ -31,7 +31,7 @@ echo -e "\033[0;33m                   ^_\_             \ \_^-._                 
 echo -e "\033[0;33m                   //._]             )/ --,_\                \033[0m"
 echo -e "\033[0;33m                  /_>               |_>                      \033[0m"
 echo -e "\033[0;33m                                                             \033[0m"
-echo -e "\033[0;33m  ########################[ Warning ]########################\033[0m"
+echo -e "\033[0;33m  ########################[ Welcome ]########################\033[0m"
 echo -e "\033[0;33m  #  You have logged in to the guest OS.                    #\033[0m"
 echo -e "\033[0;33m  #  To access your containers use 'docker attach' command  #\033[0m"
 echo -e "\033[0;33m  ###########################################################\033[0m"
@@ -39,9 +39,9 @@ echo -e "\033[0;33m                                                             
 
 const SCRIPT_DIR = "/host/etc/profile.d"
 
-func WriteWarningScript() error {
+func WriteWelcomeScript() error {
 	data := []byte(WARNING_SCRIPT)
-	err := ioutil.WriteFile(SCRIPT_DIR + "/gce-containers-warning.sh", data, 0755)
+	err := ioutil.WriteFile(SCRIPT_DIR + "/gce-containers-welcome.sh", data, 0755)
 	if err != nil {
 		return err
 	}

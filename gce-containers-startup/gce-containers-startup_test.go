@@ -67,8 +67,6 @@ spec:
   containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: ['ls']
-    args: ["/tmp/host-1"]
     volumeMounts:
     - name: 'vol1'
       mountPath: '/tmp/host-1'
@@ -87,8 +85,6 @@ spec:
   containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: ['ls']
-    args: ["/tmp/host"]
     volumeMounts:
     - name: 'testVolume'
       mountPath: '/tmp/host'
@@ -104,8 +100,6 @@ spec:
   containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: ['ls']
-    args: ["/tmp/host"]
     volumeMounts:
     - name: 'testVolume'
       mountPath: '/tmp/host'`
@@ -115,8 +109,6 @@ spec:
   containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: ['ls']
-    args: ["/tmp/host"]
   volumes:
   - name: 'testVolume'
     emptyDir:
@@ -305,8 +297,6 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	assertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"/tmp/host-1"}), mockDockerClient.CreateRequest.Cmd, "")
 	assertEqual(t, []string{"/tmp:/tmp/host-1"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
@@ -323,7 +313,7 @@ func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
 		false /* openIptables */,
 	)
 
-	assertError(t, err, "failed to start container: Volume expected to have single entry, 2 found")
+	assertError(t, err, "Failed to start container: Invalid container declaration: Volume can have only one of the properties: hostPath or emptyDir, 2 properties found")
 }
 
 func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
@@ -335,7 +325,7 @@ func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
 		false /* openIptables */,
 	)
 
-	assertError(t, err, "failed to start container: Undeclared volume 'testVolume' declared for mounting")
+	assertError(t, err, "Failed to start container: Invalid container declaration: Volume mount referers to undeclared volume with name 'testVolume'")
 }
 
 func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
@@ -347,7 +337,7 @@ func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
 		false /* openIptables */,
 	)
 
-	assertError(t, err, "failed to start container: Unmounted volume 'testVolume' declared")
+	assertNoError(t, err)
 }
 
 func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
@@ -359,7 +349,7 @@ func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
 		false /* openIptables */,
 	)
 
-	assertError(t, err, "failed to start container: Unsupported EmptyDir medium 'Tablet'")
+	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported emptyDir volume medium 'Tablet'")
 }
 
 func TestExecStartup_options(t *testing.T) {
@@ -412,7 +402,19 @@ func TestExecStartup_noMultiContainer(t *testing.T) {
 		false /* openIptables */,
 	)
 
-	assertError(t, err, "There could be exactly 1 container in specification")
+	assertError(t, err, "Container declaration should include exactly 1 container, 2 found")
+}
+
+func TestExecStartup_emptyManifest(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: "", },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertError(t, err, "Container declaration should include exactly 1 container, 0 found")
 }
 
 func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
