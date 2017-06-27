@@ -23,21 +23,26 @@ type Container struct{
 	Image string `yaml:"image"`
 
 	/* Command to run in the container */
-	Command string `yaml:"command"`
+	Command []string `yaml:"command"`
 
 	/* Args to be passed to command */
 	Args []string `yaml:"args"`
 
 	/* Volumes to be mounted for container */
-	Volumes []struct {
-		// Only one of Tmpfs or HostPath should be present
-		Tmpfs *TmpfsVolume `yaml:"tmpfs"`
-		HostPath *HostPathVolume `yaml:"hostPath"`
-	}
+	VolumeMounts []struct {
+		/* Name of the volume to mount */
+		Name string `yaml:"name"`
+		/* Path on container */
+		MountPath string `yaml:"mountPath"`
+		/* Should the volume be read-only */
+		ReadOnly  bool `yaml:"readOnly"`
+	} `yaml:"volumeMounts"`
 
 	/* Environment variables to be passed to container */
 	Env []struct {
+		/* Name of environment variable */
 		Name string
+		/* Value of environment variable */
 		Value string
 	}
 
@@ -56,27 +61,37 @@ type SecurityContextDeclaration struct {
 	Privileged bool
 }
 
-type HostPathVolume struct{
-	/* Should the volume be read-only */
-	ReadOnly  bool `yaml:"readOnly"`
-	/* Path on container */
-	MountPath string `yaml:"mountPath"`
-	/* Path on host */
-	Path string
-}
-
-type TmpfsVolume struct {
-	/* Path on container */
-	MountPath string `yaml:"mountPath"`
-	/* Size of Volume */
-	Size      string
-}
-
 /* Structure describing single container */
 type ContainerSpec struct {
 	/* Version of the metadata */
-	Version string
+	ApiVersion string
 
+	/* Kind of the spec, currently supports only 'ContainerSpec' */
+	Kind string
+
+	/* Body of the specification */
+	Spec ContainerSpecStruct
+}
+
+type ContainerSpecStruct struct {
 	/* Array of container, must be size 1 */
 	Containers []Container
+
+	/* Array of volumes, must correspond to containers */
+	Volumes []Volume
+}
+
+type Volume struct {
+	Name string
+	// Only one of EmptyDir or HostPath should be present
+	EmptyDir *EmptyDirVolume `yaml:"emptyDir"`
+	HostPath *HostPathVolume `yaml:"hostPath"`
+}
+
+type EmptyDirVolume struct {
+	Medium string
+}
+
+type HostPathVolume struct {
+	Path string
 }

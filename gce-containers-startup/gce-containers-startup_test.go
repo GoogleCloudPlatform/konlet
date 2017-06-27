@@ -31,66 +31,118 @@ import (
 )
 
 const SIMPLE_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-simple'
     image: 'gcr.io/gce-containers/apache:v1'`
 
 const RUN_COMMAND_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-run-command'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: 'ls'
+    command: ['ls']
     args: ["-l", "/tmp"]`
 
 const RUN_ARGS_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-run-command'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: 'echo'
+    command: ['echo']
     args: ["-n", "Hello \" world", "Welco'me"]`
 
 const ENVVARS_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-env-vars'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: env
+    command: ['env']
     env:
-      - name: 'VAR'
-        value: 'VAL'`
+    - name: 'VAR'
+      value: 'VAL'`
 
 const VOLUME_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: 'ls'
-    args: ["/tmp/host"]
-    volumes:
-      - hostPath:
-          path: '/tmp'
-          mountPath: '/tmp/host'
-      - tmpfs:
-          mountPath: '/tmp/host'
-          size: '10m'`
+    command: ['ls']
+    args: ["/tmp/host-1"]
+    volumeMounts:
+    - name: 'vol1'
+      mountPath: '/tmp/host-1'
+    - name: 'vol2'
+      mountPath: '/tmp/host-2'
+  volumes:
+  - name: 'vol1'
+    hostPath:
+      path: '/tmp'
+  - name: 'vol2'
+    emptyDir:
+      medium: 'Memory'`
 
-const INVALID_VOLUME_MAINFEST = `version: 'v1'
-containers:
+const INVALID_VOLUME_MAINFEST_MULTIPLE_TYPES = `version: 'v1'
+spec:
+  containers:
   - name: 'test-volume'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: 'ls'
+    command: ['ls']
     args: ["/tmp/host"]
-    volumes:
-      - hostPath:
-          path: '/tmp'
-          mountPath: '/tmp/host'
-        tmpfs:
-          mountPath: '/tmp/host'
-          size: '10m'`
+    volumeMounts:
+    - name: 'testVolume'
+      mountPath: '/tmp/host'
+  volumes:
+  - name: 'testVolume'
+    hostPath:
+      path: '/tmp'
+    emptyDir:
+      medium: 'Memory'`
+
+const INVALID_VOLUME_MAINFEST_UNMAPPED = `version: 'v1'
+spec:
+  containers:
+  - name: 'test-volume'
+    image: 'gcr.io/google-containers/busybox:latest'
+    command: ['ls']
+    args: ["/tmp/host"]
+    volumeMounts:
+    - name: 'testVolume'
+      mountPath: '/tmp/host'`
+
+const INVALID_VOLUME_MAINFEST_UNREFERENCED = `version: 'v1'
+spec:
+  containers:
+  - name: 'test-volume'
+    image: 'gcr.io/google-containers/busybox:latest'
+    command: ['ls']
+    args: ["/tmp/host"]
+  volumes:
+  - name: 'testVolume'
+    emptyDir:
+      medium: 'Memory'`
+
+const INVALID_VOLUME_MAINFEST_EMPTYDIR_MEDIUM = `version: 'v1'
+spec:
+  containers:
+  - name: 'test-volume'
+    image: 'gcr.io/google-containers/busybox:latest'
+    command: ['ls']
+    args: ["/tmp/host"]
+    volumeMounts:
+    - name: 'testVolume'
+      mountPath: '/tmp/host'
+  volumes:
+  - name: 'testVolume'
+    emptyDir:
+      medium: 'Tablet'`
 
 const OPTIONS_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-options'
     image: 'gcr.io/google-containers/busybox:latest'
-    command: 'sleep'
+    command: ['sleep']
     args: ['1000']
     securityContext:
       privileged: true
@@ -98,14 +150,16 @@ containers:
     stdin: true`
 
 const MULTICONTAINER_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-options-1'
     image: 'gcr.io/google-containers/busybox:latest'
   - name: 'test-options-2'
     image: 'gcr.io/google-containers/busybox:latest'`
 
 const REMOVE_MAINFEST = `version: 'v1'
-containers:
+spec:
+  containers:
   - name: 'test-remove'
     image: 'gcr.io/google-containers/busybox:latest'`
 
@@ -160,13 +214,14 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 
 func TestExecStartup_simple(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: SIMPLE_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
@@ -177,13 +232,14 @@ func TestExecStartup_simple(t *testing.T) {
 
 func TestExecStartup_runCommand(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: RUN_COMMAND_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
@@ -196,13 +252,14 @@ func TestExecStartup_runCommand(t *testing.T) {
 
 func TestExecStartup_runArgs(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: RUN_ARGS_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
@@ -215,13 +272,14 @@ func TestExecStartup_runArgs(t *testing.T) {
 
 func TestExecStartup_env(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: ENVVARS_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-env-vars", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
@@ -234,31 +292,32 @@ func TestExecStartup_env(t *testing.T) {
 
 func TestExecStartup_volumeMounts(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: VOLUME_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	tmpFsBinds := map[string]string{}
-	tmpFsBinds["/tmp/host"] = "size=10m"
+	tmpFsBinds["/tmp/host-2"] = ""
 	assertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	assertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"/tmp/host"}), mockDockerClient.CreateRequest.Cmd, "")
-	assertEqual(t, []string{"/tmp:/tmp/host"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, dockerstrslice.StrSlice([]string{"/tmp/host-1"}), mockDockerClient.CreateRequest.Cmd, "")
+	assertEqual(t, []string{"/tmp:/tmp/host-1"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
-func TestExecStartup_invalidVolumeMounts(t *testing.T) {
+func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_VOLUME_MAINFEST, },
+		TestManifestProvider{Manifest: INVALID_VOLUME_MAINFEST_MULTIPLE_TYPES, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
@@ -267,15 +326,52 @@ func TestExecStartup_invalidVolumeMounts(t *testing.T) {
 	assertError(t, err, "failed to start container: Volume expected to have single entry, 2 found")
 }
 
+func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: INVALID_VOLUME_MAINFEST_UNMAPPED, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertError(t, err, "failed to start container: Undeclared volume 'testVolume' declared for mounting")
+}
+
+func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: INVALID_VOLUME_MAINFEST_UNREFERENCED, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertError(t, err, "failed to start container: Unmounted volume 'testVolume' declared")
+}
+
+func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: INVALID_VOLUME_MAINFEST_EMPTYDIR_MEDIUM, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertError(t, err, "failed to start container: Unsupported EmptyDir medium 'Tablet'")
+}
+
 func TestExecStartup_options(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: OPTIONS_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-options", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
@@ -291,13 +387,14 @@ func TestExecStartup_options(t *testing.T) {
 
 func TestExecStartup_removeContainer(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
-	ExecStartup(
+	err := ExecStartup(
 		TestManifestProvider{Manifest: REMOVE_MAINFEST, },
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
 		&utils.ContainerRunner{Client: mockDockerClient},
 		false /* openIptables */,
 	)
 
+	assertNoError(t, err)
 	assertEqual(t, "test-remove", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
@@ -326,6 +423,13 @@ func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 		message = fmt.Sprintf("'%v' != '%v'", a, b)
 	}
 	t.Fatal(message)
+}
+
+func assertNoError(t *testing.T, err error) {
+	if (err != nil) {
+		message := fmt.Sprintf("%v", err)
+		t.Fatalf("Unexpected error '%s'", message)
+	}
 }
 
 func assertError(t *testing.T, err error, expected string) {
