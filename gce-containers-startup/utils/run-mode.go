@@ -245,12 +245,14 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	}
 
 	restartPolicyName := "always"
+	autoRemove := false
 	if (spec.RestartPolicy == nil || *spec.RestartPolicy == api.RestartPolicyAlways) {
 		restartPolicyName = "always"
 	} else if (*spec.RestartPolicy == api.RestartPolicyOnFailure) {
 		restartPolicyName = "on-failure"
 	} else if (*spec.RestartPolicy == api.RestartPolicyNever) {
 		restartPolicyName = "never"
+		autoRemove = true
 	} else {
 		return "", fmt.Errorf(
 			"Invalid container declaration: Unsupported container restart policy '%s'", *spec.RestartPolicy)
@@ -269,7 +271,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		HostConfig: &dockercontainer.HostConfig{
 			Binds: hostPathBinds,
 			Tmpfs: tmpFsBinds,
-			AutoRemove: true,
+			AutoRemove: autoRemove,
 			NetworkMode: "host",
 			Privileged: container.SecurityContext.Privileged,
 			LogConfig: logConfig,
