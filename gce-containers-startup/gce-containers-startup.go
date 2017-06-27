@@ -15,7 +15,6 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -33,7 +32,7 @@ var (
 	tokenFlag = flag.String("token", "", "what token to use")
 	manifestUrlFlag = flag.String("manifest-url", "", "URL for loading container manifest")
 	runDetachedFlag = flag.Bool("detached", true, "should we run container detached")
-	showWarningFlag = flag.Bool("show-warning", true, "should we show warning on SSH to host OS")
+	showWelcomeFlag = flag.Bool("show-welcome", true, "should we show welcome on SSH to host OS")
 	openIptables = flag.Bool("open-iptables", true, "should we open IP Tables")
 )
 
@@ -48,7 +47,7 @@ func (provider DefaultManifestProvider) RetrieveManifest() ([]byte, error) {
 	client := &http.Client{}
 	metadataPath := METADATA_SERVER
 	if *manifestUrlFlag != "" {
-		fmt.Fprintf(os.Stderr, "--- Using URL for manifest: %s \n", *manifestUrlFlag)
+		log.Printf("Retrieving container declaration from '%s' \n", *manifestUrlFlag)
 		metadataPath = *manifestUrlFlag
 	}
 
@@ -64,14 +63,14 @@ func (provider DefaultManifestProvider) RetrieveManifest() ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Can't read metadata: (%s).\n", resp.Status)
+		return nil, fmt.Errorf("Cannot read container declaration: (%s).\n", resp.Status)
 	}
 
 	return ioutil.ReadAll(resp.Body)
 }
 
 func main() {
-	fmt.Fprintf(os.Stderr, "--- Starting Konlet\n")
+	log.Printf("Starting Konlet container startup agent")
 	flag.Parse()
 
 	var manifestProvider ManifestProvider
@@ -86,7 +85,7 @@ func main() {
 
 	runner, err := utils.GetDefaultRunner()
 	if err != nil {
-		log.Fatalf("failed to create container runner: %v", err)
+		log.Fatalf("Failed to initialize Konlet: %v", err)
 		return
 	}
 
@@ -99,42 +98,42 @@ func main() {
 func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
 	body, err := manifestProvider.RetrieveManifest()
 	if err != nil {
-		return fmt.Errorf("Cannot load container manifest: %v", err)
+		return fmt.Errorf("Cannot load container declaration: %v", err)
 	}
 
 	declaration := api.ContainerSpec{}
 	err = yaml.Unmarshal(body, &declaration)
 	if err != nil {
-		return fmt.Errorf("Cannot parse container manifest '%s': %v", body, err)
+		return fmt.Errorf("Cannot parse container declaration '%s': %v", body, err)
 	}
 
 	spec := declaration.Spec
 	if len(spec.Containers) != 1 {
-		return fmt.Errorf("There could be exactly 1 container in specification")
+		return fmt.Errorf("Container declaration should include exactly 1 container, %d found", len(spec.Containers))
 	}
 
-	log.Print("-- Running docker")
 	var auth string
 	auth, err = authProvider.RetrieveAuthToken()
 	if err != nil {
-		return fmt.Errorf("Could not get GCR auth token: %v", err)
+		return fmt.Errorf("Cannot get auth token: %v", err)
 	}
 
 	if openIptables {
 		err = utils.OpenIptables()
 		if err != nil {
-			return fmt.Errorf("Could not open IP tables: %v", err)
+			return fmt.Errorf("Cannot update IPtables: %v", err)
 		}
 	}
 
+	log.Printf("Launching user container '%s'", spec.Containers[0].Image)
 	err = runner.RunContainer(auth, spec, *runDetachedFlag)
 	if err != nil {
-		return fmt.Errorf("failed to start container: %v", err)
+		return fmt.Errorf("Failed to start container: %v", err)
 	}
 
-	if *showWarningFlag {
-		log.Print("-- Saving warning script to profile.d")
-		utils.WriteWarningScript()
+	if *showWelcomeFlag {
+		log.Print("Saving welcome script to profile.d")
+		utils.WriteWelcomeScript()
 	}
 
 	return nil
