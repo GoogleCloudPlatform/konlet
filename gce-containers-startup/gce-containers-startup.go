@@ -102,12 +102,13 @@ func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvi
 		return fmt.Errorf("Cannot load container manifest: %v", err)
 	}
 
-	spec := api.ContainerSpec{}
-	err = yaml.Unmarshal(body, &spec)
+	declaration := api.ContainerSpec{}
+	err = yaml.Unmarshal(body, &declaration)
 	if err != nil {
 		return fmt.Errorf("Cannot parse container manifest '%s': %v", body, err)
 	}
 
+	spec := declaration.Spec
 	if len(spec.Containers) != 1 {
 		return fmt.Errorf("There could be exactly 1 container in specification")
 	}
@@ -126,7 +127,7 @@ func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvi
 		}
 	}
 
-	err = runner.RunContainer(auth, spec.Containers[0], *runDetachedFlag)
+	err = runner.RunContainer(auth, spec, *runDetachedFlag)
 	if err != nil {
 		return fmt.Errorf("failed to start container: %v", err)
 	}
