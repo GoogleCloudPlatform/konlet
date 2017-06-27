@@ -22,18 +22,19 @@ import (
 
 func printOutput(outs []byte) {
 	if len(outs) > 0 {
-		fmt.Printf("==> Command output: %s\n", string(outs))
+		fmt.Printf("iptables command output: %s\n", string(outs))
 	}
 }
 
 func OpenIptables() error {
-	log.Print("-- Opening IPtables")
+	log.Print("Updating IPtables firewall rules - allowing TCP traffic on all ports")
 	var cmd = exec.Command("iptables", "-A", "INPUT", "-p", "tcp", "-j", "ACCEPT")
 	var output, err = cmd.CombinedOutput()
 
 	if err != nil {
 		return err
 	}
+	// TODO(gjaskiewicz): check exit status and return an error
 	printOutput(output)
 
 	return nil

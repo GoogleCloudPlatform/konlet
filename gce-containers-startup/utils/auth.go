@@ -42,7 +42,7 @@ type ServiceAccountTokenProvider struct {
 }
 
 func (provider ServiceAccountTokenProvider) RetrieveAuthToken() (string, error) {
-	log.Print("-- Downloading credentials for service account")
+	log.Print("Downloading credentials for default VM service account from metadata server")
 	client := &http.Client{}
 	request, err := http.NewRequest("GET", AUTH_METADATA, nil)
 	request.Header.Add("Metadata-Flavor", "Google")
@@ -53,7 +53,7 @@ func (provider ServiceAccountTokenProvider) RetrieveAuthToken() (string, error) 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("Server responded with status %d", resp.StatusCode)
+		return "", fmt.Errorf("Metadata server responded with status %d", resp.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -66,10 +66,12 @@ func (provider ServiceAccountTokenProvider) RetrieveAuthToken() (string, error) 
 	if err != nil {
 		return "", err
 	}
+
+	// TODO(gjaskiewicz): validate that AccessToken exists
 	return res.AccessToken, nil
 }
 
 func (provider ConstantTokenProvider) RetrieveAuthToken() (string, error) {
-	log.Print("-- Using user-provided credentials")
+	log.Print("Using user-provided credentials")
 	return provider.Token, nil
 }
