@@ -14,6 +14,18 @@
 
 package types
 
+// RestartPolicy describes how the container should be restarted.
+// Only one of the following restart policies may be specified.
+// If none of the following policies is specified, the default one
+// is RestartPolicyAlways.
+type RestartPolicy string
+
+const (
+	RestartPolicyAlways    RestartPolicy = "Always"
+	RestartPolicyOnFailure RestartPolicy = "OnFailure"
+	RestartPolicyNever     RestartPolicy = "Never"
+)
+
 /* Structure describing single container */
 type Container struct{
 	/* Name of the container */
@@ -79,6 +91,9 @@ type ContainerSpecStruct struct {
 
 	/* Array of volumes, must correspond to containers */
 	Volumes []Volume
+
+	/* Restart policy for containers */
+	RestartPolicy *RestartPolicy `yaml:"restartPolicy"`
 }
 
 type Volume struct {
