@@ -44,6 +44,7 @@ var (
 // operationTimeout is the error returned when the docker operations are timeout.
 type operationTimeout struct {
 	err error
+	operationType string
 }
 
 type DockerApiClient interface {
@@ -55,7 +56,7 @@ type DockerApiClient interface {
 }
 
 func (e operationTimeout) Error() string {
-	return fmt.Sprintf("operation timeout: %v", e.err)
+	return fmt.Sprintf("%s operation timeout: %v", e.operationType, e.err)
 }
 
 type ContainerRunner struct {
@@ -113,7 +114,7 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 	opts := dockertypes.ImagePullOptions{}
 	opts.RegistryAuth = base64Auth
 
-	log.Printf("Pulling image: '%s' (%v)\n", spec.Image, dockerClient)
+	log.Printf("Pulling image: '%s'", spec.Image)
 	resp, err := dockerClient.ImagePull(ctx, spec.Image, opts)
 	if err != nil {
 		return err
@@ -124,7 +125,7 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 	if err != nil {
 		return err
 	}
-	log.Printf("Got ImagePull response: (%s).\n", body)
+	log.Printf("Received ImagePull response: (%s).\n", body)
 
 	return nil
 }
@@ -155,11 +156,11 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 
 	containerID, exists := findIdForName(resp, containerName)
 	if !exists {
-		log.Printf("No container with name: (%s).\n", containerName)
+		log.Printf("Container with name '%s' has not yet been run.\n", containerName)
 		return nil
 	}
 
-	log.Printf("Removing container %s (ID: %s)\n", containerName, containerID)
+	log.Printf("Removing previous container '%s' (ID: %s)\n", containerName, containerID)
 	rmOpts := dockertypes.ContainerRemoveOptions{
 		Force: true,
 	}
@@ -194,13 +195,14 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		volumeMountMap[apiVolumeMount.Name] = 0
 	}
 
-	log.Printf("Mounting %d volumes", len(container.VolumeMounts))
+	log.Printf("Found %d volume mounts in container declaration", len(container.VolumeMounts))
 	for _, apiVolumeMount := range container.VolumeMounts {
 		volumesInSpec := 0
 		apiVolume, volumeExists := volumesMap[apiVolumeMount.Name]
 
 		if (!volumeExists) {
-			return "", fmt.Errorf("Undeclared volume '%s' declared for mounting", apiVolumeMount.Name)
+			return "", fmt.Errorf(
+				"Invalid container declaration: Volume mount referers to undeclared volume with name '%s'", apiVolumeMount.Name)
 		}
 
 		if apiVolume.HostPath != nil {
@@ -211,17 +213,16 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		if apiVolume.EmptyDir != nil {
 			volumesInSpec++
 			tmpFsOpts := []string{}
-			//if apiVolume.EmptyDir.Size != "" {
-			//	tmpFsOpts = append(tmpFsOpts, fmt.Sprintf("size=%s", apiVolume.EmptyDir.Size))
-			//}
 
 			if (apiVolume.EmptyDir.Medium != "Memory") {
-				return "", fmt.Errorf("Unsupported EmptyDir medium '%s'", apiVolume.EmptyDir.Medium)
+				return "", fmt.Errorf(
+					"Invalid container declaration: Unsupported emptyDir volume medium '%s'", apiVolume.EmptyDir.Medium)
 			}
 			tmpFsBinds[apiVolumeMount.MountPath] = strings.Join(tmpFsOpts, ",")
 		}
 		if volumesInSpec != 1 {
-			return "", fmt.Errorf("Volume expected to have single entry, %d found", volumesInSpec)
+			return "", fmt.Errorf(
+				"Invalid container declaration: Volume can have only one of the properties: hostPath or emptyDir, %d properties found", volumesInSpec)
 		}
 	}
 
@@ -229,7 +230,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	for _, apiVolume := range spec.Volumes {
 		_, volumeMountExists := volumeMountMap[apiVolume.Name]
 		if (!volumeMountExists) {
-			return "", fmt.Errorf("Unmounted volume '%s' declared", apiVolume.Name)
+			log.Printf("Warning: Container declaration has no volume mount for volume with name '%s'", apiVolume.Name)
 		}
 	}
 
@@ -265,13 +266,13 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 
 	createResp, err := dockerClient.ContainerCreate(
 		ctx, opts.Config, opts.HostConfig, opts.NetworkingConfig, opts.Name)
-	if ctxErr := contextError(ctx); ctxErr != nil {
+	if ctxErr := contextError(ctx, "Create container"); ctxErr != nil {
 		return "", ctxErr
 	}
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Container ID: %s.\n", createResp.ID)
+	log.Printf("Created a container with name '%s' and ID: %s", container.Name, createResp.ID)
 
 	return createResp.ID, nil
 }
@@ -280,6 +281,7 @@ func startContainer(dockerClient DockerApiClient, id string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	log.Printf("Starting a container with ID: %s", id)
 	return dockerClient.ContainerStart(ctx, id)
 }
 
@@ -291,9 +293,9 @@ func base64EncodeAuth(auth dockertypes.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-func contextError(ctx context.Context) error {
+func contextError(ctx context.Context, operationType string) error {
 	if ctx.Err() == context.DeadlineExceeded {
-		return operationTimeout{err: ctx.Err()}
+		return operationTimeout{err: ctx.Err(), operationType: operationType}
 	}
 	return ctx.Err()
 }

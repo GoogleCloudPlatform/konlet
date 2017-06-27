@@ -22,7 +22,7 @@ go_library(
         "auth.go",
         "iptables.go",
         "run-mode.go",
-        "warning-message.go",
+        "welcome-message.go",
     ],
     deps = [
         "//types:go_default_library",
