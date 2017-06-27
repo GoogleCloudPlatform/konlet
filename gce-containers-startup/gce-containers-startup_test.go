@@ -503,6 +503,6 @@ func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
 }
 
 func (api *MockDockerApi) assertDefaultSystemOptions(t *testing.T) {
-	assertEqual(t, api.HostConfig.AutoRemove, true, "")
+	assertEqual(t, api.HostConfig.AutoRemove, false, "")
 	assertEqual(t, api.HostConfig.NetworkMode.IsHost(), true, "")
 }
