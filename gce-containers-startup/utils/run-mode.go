@@ -244,6 +244,18 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		logConfig.Type = "gcplogs"
 	}
 
+	restartPolicyName := "always"
+	if (spec.RestartPolicy == nil || *spec.RestartPolicy == api.RestartPolicyAlways) {
+		restartPolicyName = "always"
+	} else if (*spec.RestartPolicy == api.RestartPolicyOnFailure) {
+		restartPolicyName = "on-failure"
+	} else if (*spec.RestartPolicy == api.RestartPolicyNever) {
+		restartPolicyName = "never"
+	} else {
+		return "", fmt.Errorf(
+			"Invalid container declaration: Unsupported container restart policy '%s'", *spec.RestartPolicy)
+	}
+
 	opts := dockertypes.ContainerCreateConfig{
 		Name: container.Name,
 		Config: &dockercontainer.Config{
@@ -261,6 +273,9 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 			NetworkMode: "host",
 			Privileged: container.SecurityContext.Privileged,
 			LogConfig: logConfig,
+			RestartPolicy: dockercontainer.RestartPolicy {
+				Name: restartPolicyName,
+			},
 		},
 	}
 
