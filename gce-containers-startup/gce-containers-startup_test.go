@@ -155,6 +155,20 @@ spec:
   - name: 'test-remove'
     image: 'gcr.io/google-containers/busybox:latest'`
 
+const RESTART_POLICY_MAINFEST = `version: 'v1'
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: 'test-restart-policy'
+    image: 'gcr.io/google-containers/busybox:latest'`
+
+const INVALID_RESTART_POLICY_MAINFEST = `version: 'v1'
+spec:
+  restartPolicy: EachSunday
+  containers:
+  - name: 'test-restart-policy'
+    image: 'gcr.io/google-containers/busybox:latest'`
+
 const MOCK_AUTH_TOKEN = "123123123="
 const MOCK_CONTAINER_ID = "1234567"
 const MOCK_EXISTING_CONTAINER_ID = "123123123"
@@ -417,6 +431,41 @@ func TestExecStartup_emptyManifest(t *testing.T) {
 	assertError(t, err, "Container declaration should include exactly 1 container, 0 found")
 }
 
+func TestExecStartup_restartPolicy(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: RESTART_POLICY_MAINFEST, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertNoError(t, err)
+	assertEqual(t, "test-restart-policy", mockDockerClient.ContainerName, "")
+	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	mockDockerClient.assertDefaultSystemOptions(t)
+	assertEqual(t, mockDockerClient.HostConfig.Privileged, false, "")
+	assertEqual(t, mockDockerClient.HostConfig.RestartPolicy.Name, "on-failure", "")
+	assertEqual(t, mockDockerClient.CreateRequest.User, "", "")
+	assertEqual(t, mockDockerClient.CreateRequest.StdinOnce, false, "")
+	assertEqual(t, mockDockerClient.CreateRequest.Tty, false, "")
+}
+
+func TestExecStartup_invalidRestartPolicy(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: INVALID_RESTART_POLICY_MAINFEST, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
+}
+
 func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 	if reflect.DeepEqual(a, b) {
 		return
@@ -447,6 +496,7 @@ func assertError(t *testing.T, err error, expected string) {
 func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
 	api.assertDefaultSystemOptions(t)
 	assertEqual(t, api.HostConfig.Privileged, false, "")
+	assertEqual(t, api.HostConfig.RestartPolicy.Name, "always", "")
 	assertEqual(t, api.CreateRequest.User, "", "")
 	assertEqual(t, api.CreateRequest.StdinOnce, false, "")
 	assertEqual(t, api.CreateRequest.Tty, false, "")
