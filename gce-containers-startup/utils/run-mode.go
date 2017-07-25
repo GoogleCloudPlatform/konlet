@@ -251,7 +251,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	} else if (*spec.RestartPolicy == api.RestartPolicyOnFailure) {
 		restartPolicyName = "on-failure"
 	} else if (*spec.RestartPolicy == api.RestartPolicyNever) {
-		restartPolicyName = "never"
+		restartPolicyName = "no"
 		autoRemove = true
 	} else {
 		return "", fmt.Errorf(
