@@ -169,6 +169,31 @@ spec:
   - name: 'test-restart-policy'
     image: 'gcr.io/google-containers/busybox:latest'`
 
+
+const PROBLEM_MANIFEST = `
+spec:
+  containers:
+    - name: test-07-rc01
+      image: gcr.io/google-containers/busybox
+      command:
+        - ls
+      args:
+        - /
+      volumeMounts:
+        - name: host-path-1
+          mountPath: /tmp-host
+          readOnly: false
+        - name: emptydir-1
+          mountPath: /tmp-tmpfs
+  restartPolicy: OnFailure
+  volumes:
+    - name: host-path-1
+      hostPath:
+        path: /tmp
+    - name: emptydir-1
+      emptyDir:
+        medium: Memory`
+
 const MAINFEST_WITH_IGNORED_POD_FIELDS = `
 apiVersion: 'v1'
 kind: 'Pod'
@@ -472,6 +497,22 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 	)
 
 	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
+}
+
+func TestExecStartup_problem(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: PROBLEM_MANIFEST, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertNoError(t, err)
+	tmpFsBinds := map[string]string{}
+	tmpFsBinds["/tmp-tmpfs"] = ""
+	assertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 }
 
 func TestExecStartup_ignorePodFields(t *testing.T) {
