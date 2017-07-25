@@ -30,13 +30,13 @@ import (
 	"reflect"
 )
 
-const SIMPLE_MAINFEST = `version: 'v1'
+const SIMPLE_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-simple'
     image: 'gcr.io/gce-containers/apache:v1'`
 
-const RUN_COMMAND_MAINFEST = `version: 'v1'
+const RUN_COMMAND_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-run-command'
@@ -44,7 +44,7 @@ spec:
     command: ['ls']
     args: ["-l", "/tmp"]`
 
-const RUN_ARGS_MAINFEST = `version: 'v1'
+const RUN_ARGS_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-run-command'
@@ -52,7 +52,7 @@ spec:
     command: ['echo']
     args: ["-n", "Hello \" world", "Welco'me"]`
 
-const ENVVARS_MAINFEST = `version: 'v1'
+const ENVVARS_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-env-vars'
@@ -62,7 +62,7 @@ spec:
     - name: 'VAR'
       value: 'VAL'`
 
-const VOLUME_MAINFEST = `version: 'v1'
+const VOLUME_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-volume'
@@ -80,7 +80,7 @@ spec:
     emptyDir:
       medium: 'Memory'`
 
-const INVALID_VOLUME_MAINFEST_MULTIPLE_TYPES = `version: 'v1'
+const INVALID_VOLUME_MAINFEST_MULTIPLE_TYPES = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-volume'
@@ -95,7 +95,7 @@ spec:
     emptyDir:
       medium: 'Memory'`
 
-const INVALID_VOLUME_MAINFEST_UNMAPPED = `version: 'v1'
+const INVALID_VOLUME_MAINFEST_UNMAPPED = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-volume'
@@ -104,7 +104,7 @@ spec:
     - name: 'testVolume'
       mountPath: '/tmp/host'`
 
-const INVALID_VOLUME_MAINFEST_UNREFERENCED = `version: 'v1'
+const INVALID_VOLUME_MAINFEST_UNREFERENCED = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-volume'
@@ -114,7 +114,7 @@ spec:
     emptyDir:
       medium: 'Memory'`
 
-const INVALID_VOLUME_MAINFEST_EMPTYDIR_MEDIUM = `version: 'v1'
+const INVALID_VOLUME_MAINFEST_EMPTYDIR_MEDIUM = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-volume'
@@ -129,7 +129,7 @@ spec:
     emptyDir:
       medium: 'Tablet'`
 
-const OPTIONS_MAINFEST = `version: 'v1'
+const OPTIONS_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-options'
@@ -141,7 +141,7 @@ spec:
     tty: true
     stdin: true`
 
-const MULTICONTAINER_MAINFEST = `version: 'v1'
+const MULTICONTAINER_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-options-1'
@@ -149,25 +149,32 @@ spec:
   - name: 'test-options-2'
     image: 'gcr.io/google-containers/busybox:latest'`
 
-const REMOVE_MAINFEST = `version: 'v1'
+const REMOVE_MAINFEST = `apiVersion: 'v1'
 spec:
   containers:
   - name: 'test-remove'
     image: 'gcr.io/google-containers/busybox:latest'`
 
-const RESTART_POLICY_MAINFEST = `version: 'v1'
+const RESTART_POLICY_MAINFEST = `apiVersion: 'v1'
 spec:
   restartPolicy: OnFailure
   containers:
   - name: 'test-restart-policy'
     image: 'gcr.io/google-containers/busybox:latest'`
 
-const INVALID_RESTART_POLICY_MAINFEST = `version: 'v1'
+const INVALID_RESTART_POLICY_MAINFEST = `apiVersion: 'v1'
 spec:
   restartPolicy: EachSunday
   containers:
   - name: 'test-restart-policy'
     image: 'gcr.io/google-containers/busybox:latest'`
+
+const MAINFEST_WITH_IGNORED_KIND = `apiVersion: 'v1'
+kind: 'Pod'
+spec:
+  containers:
+  - name: 'test-simple'
+    image: 'gcr.io/gce-containers/apache:v1'`
 
 const MOCK_AUTH_TOKEN = "123123123="
 const MOCK_CONTAINER_ID = "1234567"
@@ -464,6 +471,24 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 	)
 
 	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
+}
+
+func TestExecStartup_ignorePodFields(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	err := ExecStartup(
+		TestManifestProvider{Manifest: MAINFEST_WITH_IGNORED_KIND, },
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		&utils.ContainerRunner{Client: mockDockerClient},
+		false /* openIptables */,
+	)
+
+	assertNoError(t, err)
+	assertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
+	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
+	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
+	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	mockDockerClient.assertDefaultOptions(t)
 }
 
 func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
