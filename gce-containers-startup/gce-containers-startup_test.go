@@ -15,11 +15,11 @@
 package main
 
 import (
-	"testing"
 	utils "github.com/konlet/utils"
 	"io"
 	"io/ioutil"
 	"strings"
+	"testing"
 
 	"golang.org/x/net/context"
 	dockertypes "github.com/docker/engine-api/types"
