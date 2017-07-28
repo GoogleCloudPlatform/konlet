@@ -75,12 +75,6 @@ type SecurityContextDeclaration struct {
 
 /* Structure describing single container */
 type ContainerSpec struct {
-	/* Version of the metadata */
-	ApiVersion string
-
-	/* Kind of the spec, currently supports only 'ContainerSpec' */
-	Kind string
-
 	/* Body of the specification */
 	Spec ContainerSpecStruct
 }
