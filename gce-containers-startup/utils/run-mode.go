@@ -102,10 +102,12 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	authStruct := dockertypes.AuthConfig{
-		Username: "_token",
-		Password: auth,
+	authStruct := dockertypes.AuthConfig{ }
+	if auth != "" {
+		authStruct.Username = "_token";
+		authStruct.Password = auth;
 	}
+
 	base64Auth, err := base64EncodeAuth(authStruct)
 	if err != nil {
 		return err
