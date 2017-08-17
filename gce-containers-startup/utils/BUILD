@@ -21,6 +21,7 @@ go_library(
     srcs = [
         "auth.go",
         "iptables.go",
+        "registry.go",
         "run-mode.go",
         "welcome-message.go",
     ],

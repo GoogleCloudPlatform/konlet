@@ -112,10 +112,15 @@ func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvi
 		return fmt.Errorf("Container declaration should include exactly 1 container, %d found", len(spec.Containers))
 	}
 
-	var auth string
-	auth, err = authProvider.RetrieveAuthToken()
-	if err != nil {
-		return fmt.Errorf("Cannot get auth token: %v", err)
+	var auth = ""
+
+	if !utils.IsDefaultRegistryMatch(spec.Containers[0].Image) {
+		auth, err = authProvider.RetrieveAuthToken()
+		if err != nil {
+			return fmt.Errorf("Cannot get auth token: %v", err)
+		}
+	} else {
+		log.Printf("Default registry used - Konlet will use empty auth")
 	}
 
 	if openIptables {
