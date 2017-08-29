@@ -238,7 +238,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 
 	env := []string{}
 	for _, envVar := range container.Env {
-		env = append(env, fmt.Sprintf("%s=\"%s\"", envVar.Name, envVar.Value))
+		env = append(env, fmt.Sprintf("%s=%s", envVar.Name, envVar.Value))
 	}
 
 	logConfig := dockercontainer.LogConfig{}
