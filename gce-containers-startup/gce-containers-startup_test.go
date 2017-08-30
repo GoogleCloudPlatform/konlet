@@ -59,8 +59,10 @@ spec:
     image: 'gcr.io/google-containers/busybox:latest'
     command: ['env']
     env:
-    - name: 'VAR'
-      value: 'VAL'`
+    - name: 'VAR1'
+      value: 'VAL1'
+    - name: 'VAR2'
+      value: 'VAL2'`
 
 const VOLUME_MANIFEST = `
 spec:
@@ -323,7 +325,7 @@ func TestExecStartup_env(t *testing.T) {
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	assertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, []string{"VAR=VAL"}, mockDockerClient.CreateRequest.Env, "")
+        assertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
