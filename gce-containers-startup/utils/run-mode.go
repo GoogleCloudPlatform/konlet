@@ -209,7 +209,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 
 		if apiVolume.HostPath != nil {
 			volumesInSpec++
-			hostPathBind := fmt.Sprintf("%s:%s", apiVolume.HostPath.Path, apiVolumeMount.MountPath)
+			hostPathBind := fmt.Sprintf("%s:%s:ro", apiVolume.HostPath.Path, apiVolumeMount.MountPath)
 			hostPathBinds = append(hostPathBinds, hostPathBind)
 		}
 		if apiVolume.EmptyDir != nil {

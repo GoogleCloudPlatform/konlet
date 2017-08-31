@@ -346,7 +346,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	assertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{"/tmp:/tmp/host-1"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, []string{"/tmp:/tmp/host-1:ro"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
@@ -513,7 +513,7 @@ func TestExecStartup_problem(t *testing.T) {
 	assertNoError(t, err)
 	tmpFsBinds := map[string]string{}
 	tmpFsBinds["/tmp-tmpfs"] = ""
-	assertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, []string{"/tmp:/tmp-host:ro"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 }
 
