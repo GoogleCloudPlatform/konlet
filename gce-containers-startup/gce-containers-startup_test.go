@@ -72,15 +72,27 @@ spec:
     volumeMounts:
     - name: 'vol1'
       mountPath: '/tmp/host-1'
+      readOnly: true
     - name: 'vol2'
       mountPath: '/tmp/host-2'
+    - name: 'vol3'
+      mountPath: '/tmp/host-3'
+      readOnly: false
+    - name: 'vol4'
+      mountPath: '/tmp/host-4'
   volumes:
   - name: 'vol1'
     hostPath:
       path: '/tmp'
   - name: 'vol2'
     emptyDir:
-      medium: 'Memory'`
+      medium: 'Memory'
+  - name: 'vol3'
+    hostPath:
+      path: '/tmp'
+  - name: 'vol4'
+    hostPath:
+      path: '/tmp'`
 
 const INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES = `
 spec:
@@ -346,7 +358,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	assertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{"/tmp:/tmp/host-1:ro"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, []string{"/tmp:/tmp/host-1:ro", "/tmp:/tmp/host-3", "/tmp:/tmp/host-4"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
@@ -513,7 +525,7 @@ func TestExecStartup_problem(t *testing.T) {
 	assertNoError(t, err)
 	tmpFsBinds := map[string]string{}
 	tmpFsBinds["/tmp-tmpfs"] = ""
-	assertEqual(t, []string{"/tmp:/tmp-host:ro"}, mockDockerClient.HostConfig.Binds, "")
+	assertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
 	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 }
 
