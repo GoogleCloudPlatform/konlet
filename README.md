@@ -22,7 +22,7 @@ To build the agent, use bazel command:
 $ bazel build gce-containers-startup
 ```
 
-Export your GCP project name to an environmental variable:
+Export your GCP project name to an environment variable:
 ```shell
 $ export MY_PROJECT=your-project-name
 ```
@@ -49,7 +49,7 @@ If you would like to install the container startup agent on your VM, copy its sy
 * Copy `konlet-startup` script to `/var/lib/google` directory
 
 
-You can also those scripts directly by a [starup script](https://cloud.google.com/compute/docs/startupscript),
+You can also those scripts directly by a [startup script](https://cloud.google.com/compute/docs/startupscript),
 `cloud-init` or `rc.d` scripts.
 
 
