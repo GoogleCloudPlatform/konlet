@@ -15,24 +15,26 @@
 package utils
 
 import (
-	"fmt"
-	"io/ioutil"
-	"flag"
-	"golang.org/x/net/context"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"strings"
 
+	"golang.org/x/net/context"
+
+	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
-	dockerapi "github.com/docker/engine-api/client"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
 
-	api "github.com/konlet/types"
 	"io"
+
+	api "github.com/konlet/types"
 )
 
 const DOCKER_UNIX_SOCKET = "unix:///var/run/docker.sock"
@@ -43,7 +45,7 @@ var (
 
 // operationTimeout is the error returned when the docker operations are timeout.
 type operationTimeout struct {
-	err error
+	err           error
 	operationType string
 }
 
@@ -70,7 +72,7 @@ func GetDefaultRunner() (*ContainerRunner, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient,}, nil
+	return &ContainerRunner{Client: dockerClient}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
@@ -102,10 +104,10 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	authStruct := dockertypes.AuthConfig{ }
+	authStruct := dockertypes.AuthConfig{}
 	if auth != "" {
-		authStruct.Username = "_token";
-		authStruct.Password = auth;
+		authStruct.Username = "_token"
+		authStruct.Password = auth
 	}
 
 	base64Auth, err := base64EncodeAuth(authStruct)
@@ -134,8 +136,8 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 
 func findIdForName(containers []dockertypes.Container, containerName string) (string, bool) {
 	var searchName = "/" + containerName
-	for _,container := range containers {
-		for _,name := range container.Names {
+	for _, container := range containers {
+		for _, name := range container.Names {
 			if name == searchName {
 				return container.ID, true
 			}
@@ -145,7 +147,7 @@ func findIdForName(containers []dockertypes.Container, containerName string) (st
 }
 
 func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error {
-	var containerName = spec.Name;
+	var containerName = spec.Name
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -186,6 +188,8 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 
 	hostPathBinds := []string{}
 	tmpFsBinds := map[string]string{}
+	// Hack to workaround the issue with double mount point for tmpFs.
+	tmpFsBindsAsVolumes := map[string]struct{}{}
 
 	volumesMap := map[string]api.Volume{}
 	for _, apiVolume := range spec.Volumes {
@@ -202,7 +206,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		volumesInSpec := 0
 		apiVolume, volumeExists := volumesMap[apiVolumeMount.Name]
 
-		if (!volumeExists) {
+		if !volumeExists {
 			return "", fmt.Errorf(
 				"Invalid container declaration: Volume mount referers to undeclared volume with name '%s'", apiVolumeMount.Name)
 		}
@@ -210,20 +214,23 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		if apiVolume.HostPath != nil {
 			volumesInSpec++
 			hostPathBind := fmt.Sprintf("%s:%s", apiVolume.HostPath.Path, apiVolumeMount.MountPath)
-                        if apiVolumeMount.ReadOnly == true {
-                          hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
-                        }                     
+			if apiVolumeMount.ReadOnly == true {
+				hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
+			}
 			hostPathBinds = append(hostPathBinds, hostPathBind)
 		}
 		if apiVolume.EmptyDir != nil {
 			volumesInSpec++
 			tmpFsOpts := []string{}
 
-			if (apiVolume.EmptyDir.Medium != "Memory") {
+			if apiVolume.EmptyDir.Medium != "Memory" {
 				return "", fmt.Errorf(
 					"Invalid container declaration: Unsupported emptyDir volume medium '%s'", apiVolume.EmptyDir.Medium)
 			}
 			tmpFsBinds[apiVolumeMount.MountPath] = strings.Join(tmpFsOpts, ",")
+			if apiVolumeMount.MountPath == "/dev/shm" {
+				tmpFsBindsAsVolumes[apiVolumeMount.MountPath] = struct{}{}
+			}
 		}
 		if volumesInSpec != 1 {
 			return "", fmt.Errorf(
@@ -234,7 +241,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	// Check for unreferenced volumes
 	for _, apiVolume := range spec.Volumes {
 		_, volumeMountExists := volumeMountMap[apiVolume.Name]
-		if (!volumeMountExists) {
+		if !volumeMountExists {
 			log.Printf("Warning: Container declaration has no volume mount for volume with name '%s'", apiVolume.Name)
 		}
 	}
@@ -251,11 +258,11 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 
 	restartPolicyName := "always"
 	autoRemove := false
-	if (spec.RestartPolicy == nil || *spec.RestartPolicy == api.RestartPolicyAlways) {
+	if spec.RestartPolicy == nil || *spec.RestartPolicy == api.RestartPolicyAlways {
 		restartPolicyName = "always"
-	} else if (*spec.RestartPolicy == api.RestartPolicyOnFailure) {
+	} else if *spec.RestartPolicy == api.RestartPolicyOnFailure {
 		restartPolicyName = "on-failure"
-	} else if (*spec.RestartPolicy == api.RestartPolicyNever) {
+	} else if *spec.RestartPolicy == api.RestartPolicyNever {
 		restartPolicyName = "no"
 		autoRemove = true
 	} else {
@@ -272,15 +279,16 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 			Env:        env,
 			StdinOnce:  container.StdIn,
 			Tty:        container.Tty,
+			Volumes:    tmpFsBindsAsVolumes,
 		},
 		HostConfig: &dockercontainer.HostConfig{
-			Binds: hostPathBinds,
-			Tmpfs: tmpFsBinds,
-			AutoRemove: autoRemove,
+			Binds:       hostPathBinds,
+			Tmpfs:       tmpFsBinds,
+			AutoRemove:  autoRemove,
 			NetworkMode: "host",
-			Privileged: container.SecurityContext.Privileged,
-			LogConfig: logConfig,
-			RestartPolicy: dockercontainer.RestartPolicy {
+			Privileged:  container.SecurityContext.Privileged,
+			LogConfig:   logConfig,
+			RestartPolicy: dockercontainer.RestartPolicy{
 				Name: restartPolicyName,
 			},
 		},
@@ -321,4 +329,3 @@ func contextError(ctx context.Context, operationType string) error {
 	}
 	return ctx.Err()
 }
-
