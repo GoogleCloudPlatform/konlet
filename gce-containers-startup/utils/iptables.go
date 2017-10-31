@@ -26,9 +26,9 @@ func printOutput(outs []byte) {
 	}
 }
 
-func OpenIptables() error {
-	log.Print("Updating IPtables firewall rules - allowing TCP traffic on all ports")
-	var cmd = exec.Command("iptables", "-A", "INPUT", "-p", "tcp", "-j", "ACCEPT")
+func OpenIptablesForProtocol(protocol string) error {
+	log.Printf("Updating IPtables firewall rules - allowing %s traffic on all ports", protocol)
+	var cmd = exec.Command("iptables", "-A", "INPUT", "-p", protocol, "-j", "ACCEPT")
 	var output, err = cmd.CombinedOutput()
 
 	if err != nil {
@@ -36,6 +36,30 @@ func OpenIptables() error {
 	}
 	// TODO(gjaskiewicz): check exit status and return an error
 	printOutput(output)
+
+	cmd = exec.Command("iptables", "-A", "FORWARD", "-p", protocol, "-j", "ACCEPT")
+	output, err = cmd.CombinedOutput()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func OpenIptables() error {
+	var err = OpenIptablesForProtocol("tcp")
+	if err != nil {
+		return err
+	}
+	err = OpenIptablesForProtocol("udp")
+	if err != nil {
+		return err
+	}
+	err = OpenIptablesForProtocol("icmp")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
