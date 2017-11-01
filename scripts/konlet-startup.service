@@ -15,7 +15,7 @@
 [Unit]
 Description=Containers on GCE Setup
 Requires=network-online.target
-After=network-online.target
+After=network-online.target google-startup-scripts.service
 
 [Service]
 ExecStart=/usr/bin/konlet-startup
