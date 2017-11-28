@@ -27,7 +27,7 @@ const (
 )
 
 /* Structure describing single container */
-type Container struct{
+type Container struct {
 	/* Name of the container */
 	Name string
 
@@ -47,7 +47,7 @@ type Container struct{
 		/* Path on container */
 		MountPath string `yaml:"mountPath"`
 		/* Should the volume be read-only */
-		ReadOnly  bool `yaml:"readOnly"`
+		ReadOnly bool `yaml:"readOnly"`
 	} `yaml:"volumeMounts"`
 
 	/* Environment variables to be passed to container */
@@ -93,8 +93,9 @@ type ContainerSpecStruct struct {
 type Volume struct {
 	Name string
 	// Only one of EmptyDir or HostPath should be present
-	EmptyDir *EmptyDirVolume `yaml:"emptyDir"`
-	HostPath *HostPathVolume `yaml:"hostPath"`
+	EmptyDir          *EmptyDirVolume          `yaml:"emptyDir"`
+	HostPath          *HostPathVolume          `yaml:"hostPath"`
+	GcePersistentDisk *GcePersistentDiskVolume `yaml:"gcePersistentDisk"`
 }
 
 type EmptyDirVolume struct {
@@ -103,4 +104,9 @@ type EmptyDirVolume struct {
 
 type HostPathVolume struct {
 	Path string
+}
+
+type GcePersistentDiskVolume struct {
+	PdName string `yaml:"pdName"`
+	FsType string `yaml:"fsType"`
 }

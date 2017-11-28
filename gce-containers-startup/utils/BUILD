@@ -23,6 +23,7 @@ go_library(
         "iptables.go",
         "registry.go",
         "run-mode.go",
+        "volumes.go",
         "welcome-message.go",
     ],
     deps = [

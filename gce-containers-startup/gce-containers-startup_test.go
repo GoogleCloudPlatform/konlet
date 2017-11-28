@@ -15,19 +15,21 @@
 package main
 
 import (
-	"testing"
-	utils "github.com/konlet/utils"
 	"io"
 	"io/ioutil"
 	"strings"
+	"testing"
 
-	"golang.org/x/net/context"
+	utils "github.com/konlet/utils"
+
+	"fmt"
+	"reflect"
+
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
-	"fmt"
-	"reflect"
+	"golang.org/x/net/context"
 )
 
 const SIMPLE_MANIFEST = `
@@ -183,7 +185,6 @@ spec:
   - name: 'test-restart-policy'
     image: 'gcr.io/google-containers/busybox:latest'`
 
-
 const PROBLEM_MANIFEST = `
 spec:
   containers:
@@ -229,10 +230,10 @@ func (provider TestManifestProvider) RetrieveManifest() ([]byte, error) {
 }
 
 type MockDockerApi struct {
-	PulledImage string
-	ContainerName string
-	CreateRequest *dockercontainer.Config
-	HostConfig *dockercontainer.HostConfig
+	PulledImage      string
+	ContainerName    string
+	CreateRequest    *dockercontainer.Config
+	HostConfig       *dockercontainer.HostConfig
 	StartedContainer string
 	RemovedContainer string
 }
@@ -246,7 +247,7 @@ func (api *MockDockerApi) ContainerCreate(ctx context.Context, config *dockercon
 	api.ContainerName = containerName
 	api.CreateRequest = config
 	api.HostConfig = hostConfig
-	return dockertypes.ContainerCreateResponse{ID: MOCK_CONTAINER_ID, }, nil
+	return dockertypes.ContainerCreateResponse{ID: MOCK_CONTAINER_ID}, nil
 }
 
 func (api *MockDockerApi) ContainerStart(ctx context.Context, container string) error {
@@ -255,8 +256,8 @@ func (api *MockDockerApi) ContainerStart(ctx context.Context, container string) 
 }
 
 func (api *MockDockerApi) ContainerList(ctx context.Context, opts dockertypes.ContainerListOptions) ([]dockertypes.Container, error) {
-	return []dockertypes.Container {
-		dockertypes.Container { ID: MOCK_EXISTING_CONTAINER_ID, Names: []string{"/test-remove"} },
+	return []dockertypes.Container{
+		dockertypes.Container{ID: MOCK_EXISTING_CONTAINER_ID, Names: []string{"/test-remove"}},
 	}, nil
 }
 
@@ -268,10 +269,10 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 func TestExecStartup_simple(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: SIMPLE_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: SIMPLE_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -286,10 +287,10 @@ func TestExecStartup_simple(t *testing.T) {
 func TestExecStartup_runCommand(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: RUN_COMMAND_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: RUN_COMMAND_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -306,10 +307,10 @@ func TestExecStartup_runCommand(t *testing.T) {
 func TestExecStartup_runArgs(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: RUN_ARGS_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: RUN_ARGS_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -326,10 +327,10 @@ func TestExecStartup_runArgs(t *testing.T) {
 func TestExecStartup_env(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: ENVVARS_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: ENVVARS_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -337,7 +338,7 @@ func TestExecStartup_env(t *testing.T) {
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	assertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
-        assertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
+	assertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -346,10 +347,10 @@ func TestExecStartup_env(t *testing.T) {
 func TestExecStartup_volumeMounts(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: VOLUME_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: VOLUME_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -368,58 +369,58 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Volume can have only one of the properties: hostPath or emptyDir, 2 properties found")
+	assertError(t, err, "Failed to start container: Invalid container declaration: Exactly one volume specification required for volume testVolume, 2 found.")
 }
 
 func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNMAPPED, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNMAPPED},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Volume mount referers to undeclared volume with name 'testVolume'")
+	assertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume referenced in container test-volume (index: 0) not found in volume definitions.")
 }
 
 func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNREFERENCED, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNREFERENCED},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
-	assertNoError(t, err)
+	assertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume not referenced by any container.")
 }
 
 func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported emptyDir volume medium 'Tablet'")
+	assertError(t, err, "Failed to start container: Volume testVolume: Unsupported emptyDir volume medium: Tablet")
 }
 
 func TestExecStartup_options(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: OPTIONS_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: OPTIONS_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -439,10 +440,10 @@ func TestExecStartup_options(t *testing.T) {
 func TestExecStartup_removeContainer(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: REMOVE_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: REMOVE_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -457,10 +458,10 @@ func TestExecStartup_removeContainer(t *testing.T) {
 func TestExecStartup_noMultiContainer(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: MULTICONTAINER_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: MULTICONTAINER_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertError(t, err, "Container declaration should include exactly 1 container, 2 found")
@@ -469,10 +470,10 @@ func TestExecStartup_noMultiContainer(t *testing.T) {
 func TestExecStartup_emptyManifest(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: "", },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: ""},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertError(t, err, "Container declaration should include exactly 1 container, 0 found")
@@ -481,10 +482,10 @@ func TestExecStartup_emptyManifest(t *testing.T) {
 func TestExecStartup_restartPolicy(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: RESTART_POLICY_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: RESTART_POLICY_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -504,10 +505,10 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: INVALID_RESTART_POLICY_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: INVALID_RESTART_POLICY_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
@@ -516,10 +517,10 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 func TestExecStartup_problem(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: PROBLEM_MANIFEST, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: PROBLEM_MANIFEST},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -532,10 +533,10 @@ func TestExecStartup_problem(t *testing.T) {
 func TestExecStartup_ignorePodFields(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	err := ExecStartup(
-		TestManifestProvider{Manifest: MANIFEST_WITH_IGNORED_POD_FIELDS, },
-		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN, },
+		TestManifestProvider{Manifest: MANIFEST_WITH_IGNORED_POD_FIELDS},
+		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerClient},
-		false /* openIptables */,
+		false, /* openIptables */
 	)
 
 	assertNoError(t, err)
@@ -558,18 +559,18 @@ func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
 }
 
 func assertNoError(t *testing.T, err error) {
-	if (err != nil) {
+	if err != nil {
 		message := fmt.Sprintf("%v", err)
 		t.Fatalf("Unexpected error '%s'", message)
 	}
 }
 
 func assertError(t *testing.T, err error, expected string) {
-	if (err == nil) {
+	if err == nil {
 		t.Fatal("Exected error not to be null")
 	}
 	message := fmt.Sprintf("%v", err)
-	if (message != expected) {
+	if message != expected {
 		t.Fatalf("Exected error to be '%s', but it was '%s'", expected, message)
 	}
 }
