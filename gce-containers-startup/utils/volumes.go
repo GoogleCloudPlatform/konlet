@@ -44,17 +44,15 @@ func prepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]Volu
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
-	volumesMap := map[string]api.Volume{}
 	volumesReferencesCount := map[string]int{}
 	for _, apiVolume := range spec.Volumes {
-		volumesMap[apiVolume.Name] = apiVolume
 		volumesReferencesCount[apiVolume.Name] = 0
 	}
 
 	for containerIndex, container := range spec.Containers {
 		log.Printf("Found %d volume mounts in container %s declaration.", len(container.VolumeMounts), container.Name)
 		for _, volumeMount := range container.VolumeMounts {
-			if _, present := volumesMap[volumeMount.Name]; !present {
+			if _, present := volumesReferencesCount[volumeMount.Name]; !present {
 				return nil, fmt.Errorf("Invalid container declaration: Volume %s referenced in container %s (index: %d) not found in volume definitions.", volumeMount.Name, container.Name, containerIndex)
 			} else {
 				volumesReferencesCount[volumeMount.Name] += 1
@@ -67,35 +65,9 @@ func prepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]Volu
 		}
 	}
 
-	// For each volume, use the proper handler function to build the volume name -> hostpath+mode map.
-	volumeNameToHostPathMap := map[string]VolumeHostPathAndMode{}
-
-	for volumeName, apiVolume := range volumesMap {
-		// Enforce exactly one volume definition.
-		definitions := 0
-		var volumeHostPathAndMode VolumeHostPathAndMode
-		var processError error
-		if apiVolume.HostPath != nil {
-			definitions++
-			volumeHostPathAndMode, processError = processHostPathVolume(apiVolume.HostPath)
-		}
-		if apiVolume.EmptyDir != nil {
-			definitions++
-			volumeHostPathAndMode, processError = processEmptyDirVolume(apiVolume.EmptyDir)
-		}
-		if apiVolume.GcePersistentDisk != nil {
-			definitions++
-			volumeHostPathAndMode, processError = processGcePersistentDiskVolume(apiVolume.GcePersistentDisk)
-		}
-		if definitions != 1 {
-			return nil, fmt.Errorf("Invalid container declaration: Exactly one volume specification required for volume %s, %d found.", volumeName, definitions)
-		}
-
-		if processError != nil {
-			return nil, fmt.Errorf("Volume %s: %s", volumeName, processError)
-		} else {
-			volumeNameToHostPathMap[volumeName] = volumeHostPathAndMode
-		}
+	volumeNameToHostPathMap, volumeNameMapBuildingError := buildVolumeNameToHostPathMap(spec.Volumes)
+	if volumeNameMapBuildingError != nil {
+		return nil, volumeNameMapBuildingError
 	}
 
 	containerBindingConfigurationMap := map[string]VolumeBindingConfiguration{}
@@ -118,6 +90,40 @@ func prepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]Volu
 	}
 
 	return containerBindingConfigurationMap, nil
+}
+
+func buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHostPathAndMode, error) {
+	// For each volume, use the proper handler function to build the volume name -> hostpath+mode map.
+	volumeNameToHostPathMap := map[string]VolumeHostPathAndMode{}
+
+	for _, apiVolume := range apiVolumes {
+		// Enforce exactly one volume definition.
+		definitions := 0
+		var volumeHostPathAndMode VolumeHostPathAndMode
+		var processError error
+		if apiVolume.HostPath != nil {
+			definitions++
+			volumeHostPathAndMode, processError = processHostPathVolume(apiVolume.HostPath)
+		}
+		if apiVolume.EmptyDir != nil {
+			definitions++
+			volumeHostPathAndMode, processError = processEmptyDirVolume(apiVolume.EmptyDir)
+		}
+		if apiVolume.GcePersistentDisk != nil {
+			definitions++
+			volumeHostPathAndMode, processError = processGcePersistentDiskVolume(apiVolume.GcePersistentDisk)
+		}
+		if definitions != 1 {
+			return nil, fmt.Errorf("Invalid container declaration: Exactly one volume specification required for volume %s, %d found.", apiVolume.Name, definitions)
+		}
+
+		if processError != nil {
+			return nil, fmt.Errorf("Volume %s: %s", apiVolume.Name, processError)
+		} else {
+			volumeNameToHostPathMap[apiVolume.Name] = volumeHostPathAndMode
+		}
+	}
+	return volumeNameToHostPathMap, nil
 }
 
 func processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, error) {

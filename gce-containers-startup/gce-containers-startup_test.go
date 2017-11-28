@@ -15,20 +15,19 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
-
-	utils "github.com/konlet/utils"
-
-	"fmt"
-	"reflect"
 
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
+	utils "github.com/konlet/utils"
+
 	"golang.org/x/net/context"
 )
 
