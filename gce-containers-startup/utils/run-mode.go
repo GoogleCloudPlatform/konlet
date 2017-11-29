@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
 
 	"golang.org/x/net/context"
 
@@ -175,6 +174,10 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if len(spec.Containers) != 1 {
+		return "", fmt.Errorf("Exactly one container in declaration expected.")
+	}
+
 	container := spec.Containers[0]
 	var runCommand dockerstrslice.StrSlice
 	if container.Command != nil {
@@ -186,63 +189,30 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
+	containerVolumeBindingConfigurationMap, volumePrepareError := prepareVolumesAndGetBindings(spec)
+	if volumePrepareError != nil {
+		return "", volumePrepareError
+	}
+	volumeBindingConfiguration, volumeBindingFound := containerVolumeBindingConfigurationMap[container.Name]
+	if !volumeBindingFound {
+		return "", fmt.Errorf("Volume binding configuration for container %s not found in the map. This should not happen.", container.Name)
+	}
+	// Docker-API compatible types.
 	hostPathBinds := []string{}
 	tmpFsBinds := map[string]string{}
 	// Hack to workaround the issue with double mount point for tmpFs.
 	tmpFsBindsAsVolumes := map[string]struct{}{}
-
-	volumesMap := map[string]api.Volume{}
-	for _, apiVolume := range spec.Volumes {
-		volumesMap[apiVolume.Name] = apiVolume
+	for _, hostPathBindConfiguration := range volumeBindingConfiguration.hostPathBinds {
+		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.hostPath, hostPathBindConfiguration.containerPath)
+		if hostPathBindConfiguration.readOnly {
+			hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
+		}
+		hostPathBinds = append(hostPathBinds, hostPathBind)
 	}
-
-	volumeMountMap := map[string]int{}
-	for _, apiVolumeMount := range container.VolumeMounts {
-		volumeMountMap[apiVolumeMount.Name] = 0
-	}
-
-	log.Printf("Found %d volume mounts in container declaration", len(container.VolumeMounts))
-	for _, apiVolumeMount := range container.VolumeMounts {
-		volumesInSpec := 0
-		apiVolume, volumeExists := volumesMap[apiVolumeMount.Name]
-
-		if !volumeExists {
-			return "", fmt.Errorf(
-				"Invalid container declaration: Volume mount referers to undeclared volume with name '%s'", apiVolumeMount.Name)
-		}
-
-		if apiVolume.HostPath != nil {
-			volumesInSpec++
-			hostPathBind := fmt.Sprintf("%s:%s", apiVolume.HostPath.Path, apiVolumeMount.MountPath)
-			if apiVolumeMount.ReadOnly == true {
-				hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
-			}
-			hostPathBinds = append(hostPathBinds, hostPathBind)
-		}
-		if apiVolume.EmptyDir != nil {
-			volumesInSpec++
-			tmpFsOpts := []string{}
-
-			if apiVolume.EmptyDir.Medium != "Memory" {
-				return "", fmt.Errorf(
-					"Invalid container declaration: Unsupported emptyDir volume medium '%s'", apiVolume.EmptyDir.Medium)
-			}
-			tmpFsBinds[apiVolumeMount.MountPath] = strings.Join(tmpFsOpts, ",")
-			if apiVolumeMount.MountPath == "/dev/shm" {
-				tmpFsBindsAsVolumes[apiVolumeMount.MountPath] = struct{}{}
-			}
-		}
-		if volumesInSpec != 1 {
-			return "", fmt.Errorf(
-				"Invalid container declaration: Volume can have only one of the properties: hostPath or emptyDir, %d properties found", volumesInSpec)
-		}
-	}
-
-	// Check for unreferenced volumes
-	for _, apiVolume := range spec.Volumes {
-		_, volumeMountExists := volumeMountMap[apiVolume.Name]
-		if !volumeMountExists {
-			log.Printf("Warning: Container declaration has no volume mount for volume with name '%s'", apiVolume.Name)
+	for _, tmpFsBindConfiguration := range volumeBindingConfiguration.tmpFsBinds {
+		tmpFsBinds[tmpFsBindConfiguration.path] = ""
+		if tmpFsBindConfiguration.path == "/dev/shm" {
+			tmpFsBindsAsVolumes[tmpFsBindConfiguration.path] = struct{}{}
 		}
 	}
 
