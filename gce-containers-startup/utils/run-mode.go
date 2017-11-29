@@ -195,7 +195,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 	}
 	volumeBindingConfiguration, volumeBindingFound := containerVolumeBindingConfigurationMap[container.Name]
 	if !volumeBindingFound {
-		return "", fmt.Errorf("Volume binding configuration for container %s not found in the map, WHY??", container.Name)
+		return "", fmt.Errorf("Volume binding configuration for container %s not found in the map. This should not happen.", container.Name)
 	}
 	// Docker-API compatible types.
 	hostPathBinds := []string{}

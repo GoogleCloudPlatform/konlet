@@ -36,7 +36,7 @@ type VolumeBindingConfiguration struct {
 //
 // The function takes the API specification and:
 //  - Verifies consistency.
-//  - Creates/mounts/format all the necessary volumes.
+//  - Creates/mounts/formats all the necessary volumes.
 //  - Outputs all the binding maps, keyed by container name.
 //
 // The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
