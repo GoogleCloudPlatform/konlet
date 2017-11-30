@@ -23,10 +23,7 @@ load(
     "go_library",
     "go_test",
 )
-load(
-    "@bazel_tools//tools/build_defs/docker:docker.bzl",
-    "docker_build",
-)
+load("@io_bazel_rules_docker//docker:docker.bzl", "docker_build")
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 go_prefix("github.com/konlet")
