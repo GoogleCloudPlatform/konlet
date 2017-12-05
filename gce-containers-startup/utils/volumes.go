@@ -4,8 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	api "github.com/konlet/types"
+)
+
+const (
+	ext4FsType               string = "ext4"
+	mountedVolumesPathPrefix string = "/mnt/disks/gce-containers-mounts"
 )
 
 type VolumeHostPathAndMode struct {
@@ -146,5 +152,193 @@ func processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, e
 }
 
 func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (VolumeHostPathAndMode, error) {
-	return VolumeHostPathAndMode{}, fmt.Errorf("Unimplemented.")
+	if volume.FsType != "" && volume.FsType != ext4FsType {
+		return VolumeHostPathAndMode{}, fmt.Errof("Unsupported filesystem type: %s", volume.FsType)
+	}
+	volume.FsType = ext4FsType
+	if volume.PdName == "" {
+		return VolumeHostPathAndMode{}, fmt.Errof("Empty PD name!")
+	}
+
+	devicePath, err := resolveGcePersistentDiskDevicePath(volume.Name)
+	if err != nil {
+		return VolumeHostPathAndMode{}, fmt.Errorf("Could not resolve GCE Persistent Disk device path: %s", err)
+	}
+	if volume.partition > 0 {
+		devicePath = fmt.Sprintf("%s-part%d", devicePath, volume.partition)
+	}
+
+	if err := checkDeviceReadable(devicePath); err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+	if err := checkDeviceNotMounted(devicePath); err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+	if err := checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+
+	deviceMountPoint, err := createNewMountPath("gce_persistent_disk", volume.Name)
+	if err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+	if err := mountDevice(devicePath, volume.ReadOnly); err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+
+	// Success!
+	return VolumeHostPathAndMode{deviceMountPoint, volume.ReadOnly}, nil
+}
+
+func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
+	// Currently, only static mapping is supported, as metadata about PD name is not available.
+	return fmt.Sprintf("/dev/disk/by-id/google-%s", pdName), nil
+}
+
+// Generate a name for the new volume mount, based on the volume family (type)
+// and volume name.  Create the directory if necessary, return a path to a
+// valid directory to mount the volume in, error otherwise.
+func createNewMountPath(volumeFamily string, volumeName string) (string, error) {
+	path = fmt.Sprintf("%s/%s/%s", mountedVolumesPathPrefix, volumeFamily, volumeName)
+	log.Printf("Creating directory %s as a mount point for volume %s.", path, volumeName)
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return "", fmt.Errorf("Failed to create directory %s: %s", path, err)
+	} else {
+		return path, nil
+	}
+}
+
+// Attempt to mount the device under a generated path. Assumes the device contains an ext4 filesystem.
+func mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
+	log.Printf("Attempting to mount device %s at %s.", devicePath, mountPath)
+
+	var mountOpts []string
+	if readOnly {
+		mountOpts = append(mountOpts, "ro")
+	} else {
+		mountOpts = append(mountOpts, "rw")
+	}
+	output, err := execCommandWithErrorOutputCommand("mount", "-o", strings.Join(mountOpts, ","), "-t", fsType, devicePath, mountPath)
+	if err != nil {
+		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
+	} else {
+		return nil
+	}
+}
+
+func checkDeviceReadable(devicePath string) error {
+	fileInfo, err := os.Stat(devicePath)
+	if err != nil {
+		return fmt.Errorf("Device %s access error: %s", devicePath, err)
+	}
+	if !(fileInfo.Mode() & os.ModeDevice) || (fileInfo.Mode() & os.ModeCharDevice) {
+		return fmt.Errorf("Device %s is not a block device.", devicePath)
+	}
+	// TODO: More detailed access checks.
+	return nil
+}
+
+func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string) error {
+	// Should be const, but Go can't into map consts.
+	filesystemCheckerMap := map[string][]string{
+		ext4FsType: []string{"fsck.ext4", "-p"},
+	}
+	filesystemFormatterMap := map[string][]string{
+		ext4FsType: []string{"mkfs.ext4"},
+	}
+	filesystemChecker := filesystemCheckerMap[configuredFsType]
+	filesystemFormatter := filesystemFormatterMap[configuredFsType]
+	if filesystemChecker == nil || filesystemFormatter == nil {
+		return fmt.Errorf("Could not find checker or formatter for filesystem %s.", configuredFsType)
+	}
+
+	const lsblkFsType string = "FSTYPE"
+	foundFsType, err := getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkFsType)
+	if err != nil {
+		return err
+	}
+	// Unfortunately, lsblk(8) doesn't provide a way to tell apart a
+	// nonexistent filesystem (e.g. a fresh drive) from device read problem
+	// - in both cases not reporting any errors and returning an empty
+	// FSTYPE field. Therefore, care must be taken to compensate for this behaviour. The strategy below is deemed safe, because:
+	//
+	// - If lsblk(8) lacks privileges to read the filesystem and the
+	//   decision is put forward to format it, mkfs(8) will fail as well.
+	// - If lsblk(8) had privileges and still didn't detect the filesystem,
+	//   it's OK to format it.
+	if foundFsType == "" {
+		// Need to format.
+		log.Printf("Formatting device %s with filesystem %s...", devicePath, configuredFsType)
+		output, err := runCommandOnArgsArrayAppendingLastArgument(filesystemFormatter, devicePath)
+		if err != nil {
+			return fmt.Errrof("Failed to format filesystem: %s", output)
+		} else {
+			log.Printf("%s\n", output)
+		}
+	} else if foundFsType == configuredFsType {
+		// Need to fsck.
+		log.Printf("Running filesystem checker on device %s...", devicePath)
+		output, err := runCommandOnArgsArrayAppendingLastArgument(filesystemChecker, devicePath)
+		if err != nil {
+			return fmt.Errrof("Filesystem check failed: %s", err)
+		} else {
+			log.Printf("%s\n", output)
+		}
+	} else {
+		return fmt.Errorf("Device %s: found filesystem type %s, expected %s.", devicePath, foundFsType, configuredFsType)
+	}
+	return nil
+}
+
+// os.exec.Command() takes exactly opposite structure of arguments (command
+// first, then arguments as vararg), so we need to reverse that.
+func runCommandOnArgsArrayAppendingLastArgument(args []string, lastArgument string) (string, error) {
+	if len(args) == 0 {
+		return fmt.Errorf("No command provided.")
+	}
+	command := args[0]
+	execArgs := append(args[1:], lastArgument)
+	return execCommandWithErrorOutput(command, execArgs)
+}
+
+// Return non-nil error with meaningful message when the device is already mounted.
+func checkDeviceNotMounted(devicePath string) error {
+	const lsblkMountPoint string = "MOUNTPOINT"
+	if mountPoint, err = getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
+		return err
+	} else {
+		if mountPoint == "" {
+			return nil
+		} else {
+			return fmt.Errorf("Device %s is already mounted at %s", devicePath, mountPoint)
+		}
+	}
+}
+
+// Use lsblk(8) to get the value of a single property for the device.
+//
+// Empty string is returned if property is not present and/or lsblk has
+// no access to the device.
+func getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
+	output, err = execCommandWithErrorOutput("lsblk", "-n", "-o", property, devicePath)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// Wrap around os.exec.Command(...).CombinedOutput() to glue together output
+// (STDERR+STDOUT) and execution error message upon failure.
+//
+// Convert the []byte output to string as well.
+func execCommandWithErrorOutput(command string, args ...string) (string, error) {
+	output, err := os.exec.Command(command, args).CombinedOutput()
+	outputString = string(output)
+	if err != nil {
+		errorString := string(err)
+		if outputString {
+			errorString = fmt.Sprintf("%s, details: %s", errorString, outputString)
+		}
+	}
+	return outputString, nil
 }
