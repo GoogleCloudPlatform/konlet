@@ -1,17 +1,23 @@
 package utils
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	api "github.com/konlet/types"
 )
 
 const (
-	ext4FsType               string = "ext4"
-	mountedVolumesPathPrefix string = "/mnt/disks/gce-containers-mounts"
+	ext4FsType string = "ext4"
+)
+
+var (
+	mountedVolumesPathPrefixFlag = flag.String("mounted-volumes-path-prefix", "/mnt/disks/gce-containers-mounts", "Path prefix under which mount volumes.")
+	hostProcPathFlag             = flag.String("host-proc-path", "/host_proc", "Use nsenter to enter host's mount namespace specified under this path. If left empty, no namespace switch is performed (implying running outside of container.")
 )
 
 type VolumeHostPathAndMode struct {
@@ -153,19 +159,23 @@ func processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, e
 
 func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (VolumeHostPathAndMode, error) {
 	if volume.FsType != "" && volume.FsType != ext4FsType {
-		return VolumeHostPathAndMode{}, fmt.Errof("Unsupported filesystem type: %s", volume.FsType)
+		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported filesystem type: %s", volume.FsType)
 	}
 	volume.FsType = ext4FsType
 	if volume.PdName == "" {
-		return VolumeHostPathAndMode{}, fmt.Errof("Empty PD name!")
+		return VolumeHostPathAndMode{}, fmt.Errorf("Empty PD name!")
+	}
+	readOnly, err := checkIfGcePersistentDiskIsReadOnly(volume.PdName)
+	if err != nil {
+		return VolumeHostPathAndMode{}, fmt.Errorf("Could not determine if the GCE Persistent disk %s is attached read-only or read-write.", volume.PdName)
 	}
 
-	devicePath, err := resolveGcePersistentDiskDevicePath(volume.Name)
+	devicePath, err := resolveGcePersistentDiskDevicePath(volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Could not resolve GCE Persistent Disk device path: %s", err)
 	}
-	if volume.partition > 0 {
-		devicePath = fmt.Sprintf("%s-part%d", devicePath, volume.partition)
+	if volume.Partition > 0 {
+		devicePath = fmt.Sprintf("%s-part%d", devicePath, volume.Partition)
 	}
 
 	if err := checkDeviceReadable(devicePath); err != nil {
@@ -174,20 +184,30 @@ func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (Volume
 	if err := checkDeviceNotMounted(devicePath); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
-		return VolumeHostPathAndMode{}, err
+	if !readOnly {
+		if err := checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
+			return VolumeHostPathAndMode{}, err
+		}
 	}
 
-	deviceMountPoint, err := createNewMountPath("gce_persistent_disk", volume.Name)
+	deviceMountPoint, err := createNewMountPath("gce_persistent_disk", volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := mountDevice(devicePath, volume.ReadOnly); err != nil {
+	if err := mountDevice(devicePath, deviceMountPoint, volume.FsType, readOnly); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 
 	// Success!
-	return VolumeHostPathAndMode{deviceMountPoint, volume.ReadOnly}, nil
+	return VolumeHostPathAndMode{deviceMountPoint, readOnly}, nil
+}
+
+// Determine whether the GCE Persistent Disk is attached RO or RW.
+func checkIfGcePersistentDiskIsReadOnly(pdName string) (readOnly bool, err error) {
+	// TODO: Implement reading the metadata.
+	err = nil
+	readOnly = false
+	return
 }
 
 func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
@@ -199,7 +219,7 @@ func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
 // and volume name.  Create the directory if necessary, return a path to a
 // valid directory to mount the volume in, error otherwise.
 func createNewMountPath(volumeFamily string, volumeName string) (string, error) {
-	path = fmt.Sprintf("%s/%s/%s", mountedVolumesPathPrefix, volumeFamily, volumeName)
+	path := fmt.Sprintf("%s/%s/%s", *mountedVolumesPathPrefixFlag, volumeFamily, volumeName)
 	log.Printf("Creating directory %s as a mount point for volume %s.", path, volumeName)
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return "", fmt.Errorf("Failed to create directory %s: %s", path, err)
@@ -208,7 +228,8 @@ func createNewMountPath(volumeFamily string, volumeName string) (string, error) 
 	}
 }
 
-// Attempt to mount the device under a generated path. Assumes the device contains an ext4 filesystem.
+// Attempt to mount the device under a generated path. Assumes the device
+// contains an clean filesystem.
 func mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
 	log.Printf("Attempting to mount device %s at %s.", devicePath, mountPath)
 
@@ -218,7 +239,15 @@ func mountDevice(devicePath string, mountPath string, fsType string, readOnly bo
 	} else {
 		mountOpts = append(mountOpts, "rw")
 	}
-	output, err := execCommandWithErrorOutputCommand("mount", "-o", strings.Join(mountOpts, ","), "-t", fsType, devicePath, mountPath)
+	mountCommandline := []string{"mount", "-o", strings.Join(mountOpts, ","), "-t", fsType, devicePath, mountPath}
+	if *hostProcPathFlag != "" {
+		// Change the mount namespace to the host one. Note that we're
+		// not able to access the mounted directory afterwards (without
+		// yet another nsenter call).
+		nsenterCommandline := []string{"nsenter", fmt.Sprintf("--mount=%s/1/ns/mnt", *hostProcPathFlag), "--"}
+		mountCommandline = append(nsenterCommandline, mountCommandline...)
+	}
+	_, err := execCommandWithErrorOutput(mountCommandline...)
 	if err != nil {
 		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
 	} else {
@@ -231,8 +260,8 @@ func checkDeviceReadable(devicePath string) error {
 	if err != nil {
 		return fmt.Errorf("Device %s access error: %s", devicePath, err)
 	}
-	if !(fileInfo.Mode() & os.ModeDevice) || (fileInfo.Mode() & os.ModeCharDevice) {
-		return fmt.Errorf("Device %s is not a block device.", devicePath)
+	if fileInfo.Mode()&os.ModeDevice == 0 || fileInfo.Mode()&os.ModeCharDevice != 0 {
+		return fmt.Errorf("Path %s is not a block device.", devicePath)
 	}
 	// TODO: More detailed access checks.
 	return nil
@@ -260,7 +289,8 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	// Unfortunately, lsblk(8) doesn't provide a way to tell apart a
 	// nonexistent filesystem (e.g. a fresh drive) from device read problem
 	// - in both cases not reporting any errors and returning an empty
-	// FSTYPE field. Therefore, care must be taken to compensate for this behaviour. The strategy below is deemed safe, because:
+	// FSTYPE field. Therefore, care must be taken to compensate for this
+	// behaviour. The strategy below is deemed safe, because:
 	//
 	// - If lsblk(8) lacks privileges to read the filesystem and the
 	//   decision is put forward to format it, mkfs(8) will fail as well.
@@ -269,18 +299,18 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	if foundFsType == "" {
 		// Need to format.
 		log.Printf("Formatting device %s with filesystem %s...", devicePath, configuredFsType)
-		output, err := runCommandOnArgsArrayAppendingLastArgument(filesystemFormatter, devicePath)
+		output, err := execCommandWithErrorOutput(append(filesystemFormatter, devicePath)...)
 		if err != nil {
-			return fmt.Errrof("Failed to format filesystem: %s", output)
+			return fmt.Errorf("Failed to format filesystem: %s", output)
 		} else {
 			log.Printf("%s\n", output)
 		}
 	} else if foundFsType == configuredFsType {
 		// Need to fsck.
 		log.Printf("Running filesystem checker on device %s...", devicePath)
-		output, err := runCommandOnArgsArrayAppendingLastArgument(filesystemChecker, devicePath)
+		output, err := execCommandWithErrorOutput(append(filesystemChecker, devicePath)...)
 		if err != nil {
-			return fmt.Errrof("Filesystem check failed: %s", err)
+			return fmt.Errorf("Filesystem check failed: %s", err)
 		} else {
 			log.Printf("%s\n", output)
 		}
@@ -290,21 +320,10 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	return nil
 }
 
-// os.exec.Command() takes exactly opposite structure of arguments (command
-// first, then arguments as vararg), so we need to reverse that.
-func runCommandOnArgsArrayAppendingLastArgument(args []string, lastArgument string) (string, error) {
-	if len(args) == 0 {
-		return fmt.Errorf("No command provided.")
-	}
-	command := args[0]
-	execArgs := append(args[1:], lastArgument)
-	return execCommandWithErrorOutput(command, execArgs)
-}
-
 // Return non-nil error with meaningful message when the device is already mounted.
 func checkDeviceNotMounted(devicePath string) error {
 	const lsblkMountPoint string = "MOUNTPOINT"
-	if mountPoint, err = getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
+	if mountPoint, err := getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
 		return err
 	} else {
 		if mountPoint == "" {
@@ -320,7 +339,7 @@ func checkDeviceNotMounted(devicePath string) error {
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
 func getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
-	output, err = execCommandWithErrorOutput("lsblk", "-n", "-o", property, devicePath)
+	output, err := execCommandWithErrorOutput("lsblk", "-n", "-o", property, devicePath)
 	if err != nil {
 		return "", err
 	}
@@ -331,12 +350,15 @@ func getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (s
 // (STDERR+STDOUT) and execution error message upon failure.
 //
 // Convert the []byte output to string as well.
-func execCommandWithErrorOutput(command string, args ...string) (string, error) {
-	output, err := os.exec.Command(command, args).CombinedOutput()
-	outputString = string(output)
+func execCommandWithErrorOutput(commandAndArgs ...string) (string, error) {
+	if len(commandAndArgs) == 0 {
+		return "", fmt.Errorf("No command provided.")
+	}
+	output, err := exec.Command(commandAndArgs[0], commandAndArgs[1:]...).CombinedOutput()
+	outputString := string(output)
 	if err != nil {
-		errorString := string(err)
-		if outputString {
+		errorString := fmt.Sprintf("%s", err)
+		if outputString != "" {
 			errorString = fmt.Sprintf("%s, details: %s", errorString, outputString)
 		}
 	}
