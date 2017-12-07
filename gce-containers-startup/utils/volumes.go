@@ -1,3 +1,17 @@
+// Copyright 2017 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package utils
 
 import (
@@ -5,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	api "github.com/konlet/types"
@@ -52,7 +65,7 @@ type VolumeBindingConfiguration struct {
 //  - Outputs all the binding maps, keyed by container name.
 //
 // The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
-func prepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
+func PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
@@ -150,7 +163,7 @@ func processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, e
 }
 
 func processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
-	if _, statError := os.Stat(volume.Path); statError != nil {
+	if _, statError := OsCommandRunner.Stat(volume.Path); statError != nil {
 		return VolumeHostPathAndMode{}, fmt.Errorf("HostPath directory error: %s", statError)
 	}
 	// TODO: Check file/directory permissions.
@@ -190,7 +203,7 @@ func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (Volume
 		}
 	}
 
-	deviceMountPoint, err := createNewMountPath("gce_persistent_disk", volume.PdName)
+	deviceMountPoint, err := createNewMountPath("gce-persistent-disk", volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
@@ -219,9 +232,9 @@ func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
 // and volume name.  Create the directory if necessary, return a path to a
 // valid directory to mount the volume in, error otherwise.
 func createNewMountPath(volumeFamily string, volumeName string) (string, error) {
-	path := fmt.Sprintf("%s/%s/%s", *mountedVolumesPathPrefixFlag, volumeFamily, volumeName)
+	path := fmt.Sprintf("%s/%ss/%s", *mountedVolumesPathPrefixFlag, volumeFamily, volumeName)
 	log.Printf("Creating directory %s as a mount point for volume %s.", path, volumeName)
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := OsCommandRunner.MkdirAll(path, 0755); err != nil {
 		return "", fmt.Errorf("Failed to create directory %s: %s", path, err)
 	} else {
 		return path, nil
@@ -247,7 +260,7 @@ func mountDevice(devicePath string, mountPath string, fsType string, readOnly bo
 		nsenterCommandline := []string{"nsenter", fmt.Sprintf("--mount=%s/1/ns/mnt", *hostProcPathFlag), "--"}
 		mountCommandline = append(nsenterCommandline, mountCommandline...)
 	}
-	_, err := execCommandWithErrorOutput(mountCommandline...)
+	_, err := OsCommandRunner.Run(mountCommandline...)
 	if err != nil {
 		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
 	} else {
@@ -256,7 +269,7 @@ func mountDevice(devicePath string, mountPath string, fsType string, readOnly bo
 }
 
 func checkDeviceReadable(devicePath string) error {
-	fileInfo, err := os.Stat(devicePath)
+	fileInfo, err := OsCommandRunner.Stat(devicePath)
 	if err != nil {
 		return fmt.Errorf("Device %s access error: %s", devicePath, err)
 	}
@@ -299,16 +312,16 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	if foundFsType == "" {
 		// Need to format.
 		log.Printf("Formatting device %s with filesystem %s...", devicePath, configuredFsType)
-		output, err := execCommandWithErrorOutput(append(filesystemFormatter, devicePath)...)
+		output, err := OsCommandRunner.Run(append(filesystemFormatter, devicePath)...)
 		if err != nil {
-			return fmt.Errorf("Failed to format filesystem: %s", output)
+			return fmt.Errorf("Failed to format filesystem: %s", err)
 		} else {
 			log.Printf("%s\n", output)
 		}
 	} else if foundFsType == configuredFsType {
 		// Need to fsck.
 		log.Printf("Running filesystem checker on device %s...", devicePath)
-		output, err := execCommandWithErrorOutput(append(filesystemChecker, devicePath)...)
+		output, err := OsCommandRunner.Run(append(filesystemChecker, devicePath)...)
 		if err != nil {
 			return fmt.Errorf("Filesystem check failed: %s", err)
 		} else {
@@ -339,28 +352,9 @@ func checkDeviceNotMounted(devicePath string) error {
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
 func getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
-	output, err := execCommandWithErrorOutput("lsblk", "-n", "-o", property, devicePath)
+	output, err := OsCommandRunner.Run("lsblk", "-n", "-o", property, devicePath)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-// Wrap around os.exec.Command(...).CombinedOutput() to glue together output
-// (STDERR+STDOUT) and execution error message upon failure.
-//
-// Convert the []byte output to string as well.
-func execCommandWithErrorOutput(commandAndArgs ...string) (string, error) {
-	if len(commandAndArgs) == 0 {
-		return "", fmt.Errorf("No command provided.")
-	}
-	output, err := exec.Command(commandAndArgs[0], commandAndArgs[1:]...).CombinedOutput()
-	outputString := string(output)
-	if err != nil {
-		errorString := fmt.Sprintf("%s", err)
-		if outputString != "" {
-			errorString = fmt.Sprintf("%s, details: %s", errorString, outputString)
-		}
-	}
-	return outputString, nil
+	return strings.TrimSpace(output), nil
 }

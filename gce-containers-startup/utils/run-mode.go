@@ -189,7 +189,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
-	containerVolumeBindingConfigurationMap, volumePrepareError := prepareVolumesAndGetBindings(spec)
+	containerVolumeBindingConfigurationMap, volumePrepareError := PrepareVolumesAndGetBindings(spec)
 	if volumePrepareError != nil {
 		return "", volumePrepareError
 	}

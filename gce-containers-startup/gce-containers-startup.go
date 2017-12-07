@@ -15,25 +15,25 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"log"
-	"flag"
+	"net/http"
 
-	yaml "gopkg.in/yaml.v2"
-	utils "github.com/konlet/utils"
 	api "github.com/konlet/types"
+	utils "github.com/konlet/utils"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const METADATA_SERVER = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/gce-container-declaration"
 
 var (
-	tokenFlag = flag.String("token", "", "what token to use")
+	tokenFlag       = flag.String("token", "", "what token to use")
 	manifestUrlFlag = flag.String("manifest-url", "", "URL for loading container manifest")
 	runDetachedFlag = flag.Bool("detached", true, "should we run container detached")
 	showWelcomeFlag = flag.Bool("show-welcome", true, "should we show welcome on SSH to host OS")
-	openIptables = flag.Bool("open-iptables", true, "should we open IP Tables")
+	openIptables    = flag.Bool("open-iptables", true, "should we open IP Tables")
 )
 
 type ManifestProvider interface {
@@ -80,7 +80,7 @@ func main() {
 	if *tokenFlag == "" {
 		authProvider = utils.ServiceAccountTokenProvider{}
 	} else {
-		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag, }
+		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag}
 	}
 
 	runner, err := utils.GetDefaultRunner()
@@ -88,14 +88,14 @@ func main() {
 		log.Fatalf("Failed to initialize Konlet: %v", err)
 		return
 	}
-
-	err = ExecStartup(manifestProvider, authProvider, runner, *openIptables)
+	err = ExecStartup(manifestProvider, authProvider, runner, utils.RealOsCommandRunner{}, *openIptables)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 }
 
-func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
+func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, osCommandRunner utils.OsCommandRunnerInterface, openIptables bool) error {
+	utils.OsCommandRunner = osCommandRunner
 	body, err := manifestProvider.RetrieveManifest()
 	if err != nil {
 		return fmt.Errorf("Cannot load container declaration: %v", err)
