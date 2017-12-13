@@ -33,6 +33,11 @@ var (
 	hostProcPathFlag             = flag.String("host-proc-path", "/host_proc", "Use nsenter to enter host's mount namespace specified under this path. If left empty, no namespace switch is performed (implying running outside of container.")
 )
 
+// Environment struct for dependency injection.
+type VolumesModuleEnv struct {
+	OsCommandRunner OsCommandRunnerInterface
+}
+
 type VolumeHostPathAndMode struct {
 	// nil hostPath means no backing directory, implying tmpfs mount.
 	hostPath string
@@ -65,7 +70,7 @@ type VolumeBindingConfiguration struct {
 //  - Outputs all the binding maps, keyed by container name.
 //
 // The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
-func PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
+func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
@@ -90,7 +95,7 @@ func PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]Volu
 		}
 	}
 
-	volumeNameToHostPathMap, volumeNameMapBuildingError := buildVolumeNameToHostPathMap(spec.Volumes)
+	volumeNameToHostPathMap, volumeNameMapBuildingError := env.buildVolumeNameToHostPathMap(spec.Volumes)
 	if volumeNameMapBuildingError != nil {
 		return nil, volumeNameMapBuildingError
 	}
@@ -117,7 +122,7 @@ func PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]Volu
 	return containerBindingConfigurationMap, nil
 }
 
-func buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHostPathAndMode, error) {
 	// For each volume, use the proper handler function to build the volume name -> hostpath+mode map.
 	volumeNameToHostPathMap := map[string]VolumeHostPathAndMode{}
 
@@ -128,15 +133,15 @@ func buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHos
 		var processError error
 		if apiVolume.HostPath != nil {
 			definitions++
-			volumeHostPathAndMode, processError = processHostPathVolume(apiVolume.HostPath)
+			volumeHostPathAndMode, processError = env.processHostPathVolume(apiVolume.HostPath)
 		}
 		if apiVolume.EmptyDir != nil {
 			definitions++
-			volumeHostPathAndMode, processError = processEmptyDirVolume(apiVolume.EmptyDir)
+			volumeHostPathAndMode, processError = env.processEmptyDirVolume(apiVolume.EmptyDir)
 		}
 		if apiVolume.GcePersistentDisk != nil {
 			definitions++
-			volumeHostPathAndMode, processError = processGcePersistentDiskVolume(apiVolume.GcePersistentDisk)
+			volumeHostPathAndMode, processError = env.processGcePersistentDiskVolume(apiVolume.GcePersistentDisk)
 		}
 		if definitions != 1 {
 			return nil, fmt.Errorf("Invalid container declaration: Exactly one volume specification required for volume %s, %d found.", apiVolume.Name, definitions)
@@ -151,7 +156,7 @@ func buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHos
 	return volumeNameToHostPathMap, nil
 }
 
-func processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, error) {
 	if volume.Medium != "Memory" {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported emptyDir volume medium: %s", volume.Medium)
 	}
@@ -162,15 +167,15 @@ func processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, e
 	return VolumeHostPathAndMode{hostPath: "", readOnly: false}, nil
 }
 
-func processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
-	if _, statError := OsCommandRunner.Stat(volume.Path); statError != nil {
+func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
+	if _, statError := env.OsCommandRunner.Stat(volume.Path); statError != nil {
 		return VolumeHostPathAndMode{}, fmt.Errorf("HostPath directory error: %s", statError)
 	}
 	// TODO: Check file/directory permissions.
 	return VolumeHostPathAndMode{hostPath: volume.Path, readOnly: false}, nil
 }
 
-func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (VolumeHostPathAndMode, error) {
 	if volume.FsType != "" && volume.FsType != ext4FsType {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported filesystem type: %s", volume.FsType)
 	}
@@ -178,7 +183,7 @@ func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (Volume
 	if volume.PdName == "" {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Empty PD name!")
 	}
-	readOnly, err := checkIfGcePersistentDiskIsReadOnly(volume.PdName)
+	readOnly, err := env.checkIfGcePersistentDiskIsReadOnly(volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Could not determine if the GCE Persistent disk %s is attached read-only or read-write.", volume.PdName)
 	}
@@ -191,23 +196,23 @@ func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (Volume
 		devicePath = fmt.Sprintf("%s-part%d", devicePath, volume.Partition)
 	}
 
-	if err := checkDeviceReadable(devicePath); err != nil {
+	if err := env.checkDeviceReadable(devicePath); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := checkDeviceNotMounted(devicePath); err != nil {
+	if err := env.checkDeviceNotMounted(devicePath); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 	if !readOnly {
-		if err := checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
+		if err := env.checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
 			return VolumeHostPathAndMode{}, err
 		}
 	}
 
-	deviceMountPoint, err := createNewMountPath("gce-persistent-disk", volume.PdName)
+	deviceMountPoint, err := env.createNewMountPath("gce-persistent-disk", volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := mountDevice(devicePath, deviceMountPoint, volume.FsType, readOnly); err != nil {
+	if err := env.mountDevice(devicePath, deviceMountPoint, volume.FsType, readOnly); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 
@@ -216,7 +221,7 @@ func processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (Volume
 }
 
 // Determine whether the GCE Persistent Disk is attached RO or RW.
-func checkIfGcePersistentDiskIsReadOnly(pdName string) (readOnly bool, err error) {
+func (env VolumesModuleEnv) checkIfGcePersistentDiskIsReadOnly(pdName string) (readOnly bool, err error) {
 	// TODO: Implement reading the metadata.
 	err = nil
 	readOnly = false
@@ -231,10 +236,10 @@ func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
 // Generate a name for the new volume mount, based on the volume family (type)
 // and volume name.  Create the directory if necessary, return a path to a
 // valid directory to mount the volume in, error otherwise.
-func createNewMountPath(volumeFamily string, volumeName string) (string, error) {
+func (env VolumesModuleEnv) createNewMountPath(volumeFamily string, volumeName string) (string, error) {
 	path := fmt.Sprintf("%s/%ss/%s", *mountedVolumesPathPrefixFlag, volumeFamily, volumeName)
 	log.Printf("Creating directory %s as a mount point for volume %s.", path, volumeName)
-	if err := OsCommandRunner.MkdirAll(path, 0755); err != nil {
+	if err := env.OsCommandRunner.MkdirAll(path, 0755); err != nil {
 		return "", fmt.Errorf("Failed to create directory %s: %s", path, err)
 	} else {
 		return path, nil
@@ -243,7 +248,7 @@ func createNewMountPath(volumeFamily string, volumeName string) (string, error) 
 
 // Attempt to mount the device under a generated path. Assumes the device
 // contains an clean filesystem.
-func mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
+func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
 	log.Printf("Attempting to mount device %s at %s.", devicePath, mountPath)
 
 	var mountOpts []string
@@ -260,7 +265,7 @@ func mountDevice(devicePath string, mountPath string, fsType string, readOnly bo
 		nsenterCommandline := []string{"nsenter", fmt.Sprintf("--mount=%s/1/ns/mnt", *hostProcPathFlag), "--"}
 		mountCommandline = append(nsenterCommandline, mountCommandline...)
 	}
-	_, err := OsCommandRunner.Run(mountCommandline...)
+	_, err := env.OsCommandRunner.Run(mountCommandline...)
 	if err != nil {
 		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
 	} else {
@@ -268,8 +273,8 @@ func mountDevice(devicePath string, mountPath string, fsType string, readOnly bo
 	}
 }
 
-func checkDeviceReadable(devicePath string) error {
-	fileInfo, err := OsCommandRunner.Stat(devicePath)
+func (env VolumesModuleEnv) checkDeviceReadable(devicePath string) error {
+	fileInfo, err := env.OsCommandRunner.Stat(devicePath)
 	if err != nil {
 		return fmt.Errorf("Device %s access error: %s", devicePath, err)
 	}
@@ -280,7 +285,7 @@ func checkDeviceReadable(devicePath string) error {
 	return nil
 }
 
-func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string) error {
+func (env VolumesModuleEnv) checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string) error {
 	// Should be const, but Go can't into map consts.
 	filesystemCheckerMap := map[string][]string{
 		ext4FsType: []string{"fsck.ext4", "-p"},
@@ -295,7 +300,7 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	}
 
 	const lsblkFsType string = "FSTYPE"
-	foundFsType, err := getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkFsType)
+	foundFsType, err := env.getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkFsType)
 	if err != nil {
 		return err
 	}
@@ -312,7 +317,7 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	if foundFsType == "" {
 		// Need to format.
 		log.Printf("Formatting device %s with filesystem %s...", devicePath, configuredFsType)
-		output, err := OsCommandRunner.Run(append(filesystemFormatter, devicePath)...)
+		output, err := env.OsCommandRunner.Run(append(filesystemFormatter, devicePath)...)
 		if err != nil {
 			return fmt.Errorf("Failed to format filesystem: %s", err)
 		} else {
@@ -321,7 +326,7 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 	} else if foundFsType == configuredFsType {
 		// Need to fsck.
 		log.Printf("Running filesystem checker on device %s...", devicePath)
-		output, err := OsCommandRunner.Run(append(filesystemChecker, devicePath)...)
+		output, err := env.OsCommandRunner.Run(append(filesystemChecker, devicePath)...)
 		if err != nil {
 			return fmt.Errorf("Filesystem check failed: %s", err)
 		} else {
@@ -334,9 +339,9 @@ func checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string
 }
 
 // Return non-nil error with meaningful message when the device is already mounted.
-func checkDeviceNotMounted(devicePath string) error {
+func (env VolumesModuleEnv) checkDeviceNotMounted(devicePath string) error {
 	const lsblkMountPoint string = "MOUNTPOINT"
-	if mountPoint, err := getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
+	if mountPoint, err := env.getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
 		return err
 	} else {
 		if mountPoint == "" {
@@ -351,8 +356,8 @@ func checkDeviceNotMounted(devicePath string) error {
 //
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
-func getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
-	output, err := OsCommandRunner.Run("lsblk", "-n", "-o", property, devicePath)
+func (env VolumesModuleEnv) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
+	output, err := env.OsCommandRunner.Run("lsblk", "-n", "-o", property, devicePath)
 	if err != nil {
 		return "", err
 	}

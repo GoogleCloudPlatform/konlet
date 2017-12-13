@@ -61,7 +61,8 @@ func (e operationTimeout) Error() string {
 }
 
 type ContainerRunner struct {
-	Client DockerApiClient
+	Client     DockerApiClient
+	VolumesEnv *VolumesModuleEnv
 }
 
 func GetDefaultRunner() (*ContainerRunner, error) {
@@ -71,7 +72,7 @@ func GetDefaultRunner() (*ContainerRunner, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient}, nil
+	return &ContainerRunner{Client: dockerClient, VolumesEnv: &VolumesModuleEnv{OsCommandRunner: RealOsCommandRunner{}}}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
@@ -86,7 +87,7 @@ func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecSt
 	}
 
 	var id string
-	id, err = createContainer(runner.Client, spec)
+	id, err = createContainer(runner.Client, runner.VolumesEnv, spec)
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
 }
 
-func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct) (string, error) {
+func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv, spec api.ContainerSpecStruct) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -189,7 +190,7 @@ func createContainer(dockerClient DockerApiClient, spec api.ContainerSpecStruct)
 		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
-	containerVolumeBindingConfigurationMap, volumePrepareError := PrepareVolumesAndGetBindings(spec)
+	containerVolumeBindingConfigurationMap, volumePrepareError := volumesEnv.PrepareVolumesAndGetBindings(spec)
 	if volumePrepareError != nil {
 		return "", volumePrepareError
 	}

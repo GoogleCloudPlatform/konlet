@@ -28,8 +28,6 @@ type OsCommandRunnerInterface interface {
 
 type RealOsCommandRunner struct{}
 
-var OsCommandRunner OsCommandRunnerInterface
-
 // Wrap around os.exec.Command(...).CombinedOutput() to glue together output
 // (STDERR+STDOUT) and execution error message upon failure.
 //

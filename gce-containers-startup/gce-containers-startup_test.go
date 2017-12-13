@@ -436,8 +436,7 @@ func TestExecStartup_simple(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: SIMPLE_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -456,8 +455,7 @@ func TestExecStartup_runCommand(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: RUN_COMMAND_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -478,8 +476,7 @@ func TestExecStartup_runArgs(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: RUN_ARGS_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -500,8 +497,7 @@ func TestExecStartup_env(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: ENVVARS_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -523,8 +519,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -547,8 +542,7 @@ func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -561,8 +555,7 @@ func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNMAPPED},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -575,8 +568,7 @@ func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_UNREFERENCED},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -589,8 +581,7 @@ func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -603,8 +594,7 @@ func TestExecStartup_options(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: OPTIONS_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -628,8 +618,7 @@ func TestExecStartup_removeContainer(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: REMOVE_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -648,8 +637,7 @@ func TestExecStartup_noMultiContainer(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: MULTICONTAINER_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -662,8 +650,7 @@ func TestExecStartup_emptyManifest(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: ""},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -676,8 +663,7 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: RESTART_POLICY_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -701,8 +687,7 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: INVALID_RESTART_POLICY_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -716,8 +701,7 @@ func TestExecStartup_problem(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: PROBLEM_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -734,8 +718,7 @@ func TestExecStartup_ignorePodFields(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: MANIFEST_WITH_IGNORED_POD_FIELDS},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -763,8 +746,7 @@ func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -796,8 +778,7 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_WITH_PARTITION_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -820,8 +801,7 @@ func TestExecStartup_pdNoSuchDevice(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 	assertError(t, err, "Failed to start container: Volume pd1: Device /dev/disk/by-id/google-eglebegle access error: MockCommandRunner.Stat(): No such file or directory: /dev/disk/by-id/google-eglebegle")
@@ -834,8 +814,7 @@ func TestExecStartup_pdUnsupportedFilesystem(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_INVALID_FS_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 	assertError(t, err, "Failed to start container: Volume pd1: Unsupported filesystem type: nfts")
@@ -856,8 +835,7 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -887,8 +865,7 @@ func TestExecStartup_pdValidAndNotFormattedButMkfsFails(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 	assertError(t, err, "Failed to start container: Volume pd1: Failed to format filesystem: mkfs enters an infinite loop for a while")
@@ -907,8 +884,7 @@ func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -928,8 +904,7 @@ func TestExecStartup_pdValidButLsblkFails(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 
@@ -951,8 +926,7 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 	err := ExecStartup(
 		TestManifestProvider{Manifest: GCE_PD_VOLUME_MANIFEST},
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerClient},
-		mockCommandRunner,
+		&utils.ContainerRunner{Client: mockDockerClient, VolumesEnv: &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner}},
 		false, /* openIptables */
 	)
 	assertError(t, err, "Failed to start container: Volume pd1: Failed to mount /dev/disk/by-id/google-eglebegle at /mnt/disks/gce-containers-mounts/gce-persistent-disks/eglebegle: REFUSED TO MOUNT")

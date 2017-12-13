@@ -88,14 +88,13 @@ func main() {
 		log.Fatalf("Failed to initialize Konlet: %v", err)
 		return
 	}
-	err = ExecStartup(manifestProvider, authProvider, runner, utils.RealOsCommandRunner{}, *openIptables)
+	err = ExecStartup(manifestProvider, authProvider, runner, *openIptables)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 }
 
-func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, osCommandRunner utils.OsCommandRunnerInterface, openIptables bool) error {
-	utils.OsCommandRunner = osCommandRunner
+func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
 	body, err := manifestProvider.RetrieveManifest()
 	if err != nil {
 		return fmt.Errorf("Cannot load container declaration: %v", err)
