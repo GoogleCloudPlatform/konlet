@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -35,7 +36,8 @@ var (
 
 // Environment struct for dependency injection.
 type VolumesModuleEnv struct {
-	OsCommandRunner OsCommandRunnerInterface
+	OsCommandRunner  OsCommandRunnerInterface
+	MetadataProvider MetadataProviderInterface
 }
 
 type VolumeHostPathAndMode struct {
@@ -75,8 +77,10 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
 	volumesReferencesCount := map[string]int{}
+	volumeMountWantsReadWriteMap := map[string]bool{}
 	for _, apiVolume := range spec.Volumes {
 		volumesReferencesCount[apiVolume.Name] = 0
+		volumeMountWantsReadWriteMap[apiVolume.Name] = false
 	}
 
 	for containerIndex, container := range spec.Containers {
@@ -86,6 +90,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 				return nil, fmt.Errorf("Invalid container declaration: Volume %s referenced in container %s (index: %d) not found in volume definitions.", volumeMount.Name, container.Name, containerIndex)
 			} else {
 				volumesReferencesCount[volumeMount.Name] += 1
+				volumeMountWantsReadWriteMap[volumeMount.Name] = volumeMountWantsReadWriteMap[volumeMount.Name] || !volumeMount.ReadOnly
 			}
 		}
 	}
@@ -95,7 +100,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 		}
 	}
 
-	volumeNameToHostPathMap, volumeNameMapBuildingError := env.buildVolumeNameToHostPathMap(spec.Volumes)
+	volumeNameToHostPathMap, volumeNameMapBuildingError := env.buildVolumeNameToHostPathMap(spec.Volumes, volumeMountWantsReadWriteMap)
 	if volumeNameMapBuildingError != nil {
 		return nil, volumeNameMapBuildingError
 	}
@@ -122,11 +127,20 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 	return containerBindingConfigurationMap, nil
 }
 
-func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume) (map[string]VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume, volumeMountWantsReadWriteMap map[string]bool) (map[string]VolumeHostPathAndMode, error) {
 	// For each volume, use the proper handler function to build the volume name -> hostpath+mode map.
 	volumeNameToHostPathMap := map[string]VolumeHostPathAndMode{}
 
+	diskMetadataReadOnlyMap, err := env.buildDiskMetadataReadOnlyMap()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build disk read only map from metadata: %s", err)
+	}
+
 	for _, apiVolume := range apiVolumes {
+		volumeMountWantsReadWrite, found := volumeMountWantsReadWriteMap[apiVolume.Name]
+		if !found {
+			return nil, fmt.Errorf("apiVolume %s not found in the volumeMount RW map. This should not happen.", apiVolume.Name)
+		}
 		// Enforce exactly one volume definition.
 		definitions := 0
 		var volumeHostPathAndMode VolumeHostPathAndMode
@@ -141,7 +155,7 @@ func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume
 		}
 		if apiVolume.GcePersistentDisk != nil {
 			definitions++
-			volumeHostPathAndMode, processError = env.processGcePersistentDiskVolume(apiVolume.GcePersistentDisk)
+			volumeHostPathAndMode, processError = env.processGcePersistentDiskVolume(apiVolume.GcePersistentDisk, volumeMountWantsReadWrite, diskMetadataReadOnlyMap)
 		}
 		if definitions != 1 {
 			return nil, fmt.Errorf("Invalid container declaration: Exactly one volume specification required for volume %s, %d found.", apiVolume.Name, definitions)
@@ -175,7 +189,7 @@ func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (V
 	return VolumeHostPathAndMode{hostPath: volume.Path, readOnly: false}, nil
 }
 
-func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume) (VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume, volumeMountWantsReadWrite bool, diskMetadataReadOnlyMap map[string]bool) (VolumeHostPathAndMode, error) {
 	if volume.FsType != "" && volume.FsType != ext4FsType {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported filesystem type: %s", volume.FsType)
 	}
@@ -183,11 +197,13 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 	if volume.PdName == "" {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Empty PD name!")
 	}
-	readOnly, err := env.checkIfGcePersistentDiskIsReadOnly(volume.PdName)
-	if err != nil {
+	attachedReadOnly, found := diskMetadataReadOnlyMap[volume.PdName]
+	if !found {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Could not determine if the GCE Persistent disk %s is attached read-only or read-write.", volume.PdName)
 	}
-
+	if attachedReadOnly && volumeMountWantsReadWrite {
+		return VolumeHostPathAndMode{}, fmt.Errorf("Volume mount requires read-write access, but the GCE persistent disk %s is attached read-only.", volume.PdName)
+	}
 	devicePath, err := resolveGcePersistentDiskDevicePath(volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Could not resolve GCE Persistent Disk device path: %s", err)
@@ -202,30 +218,57 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 	if err := env.checkDeviceNotMounted(devicePath); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if !readOnly {
+	if !attachedReadOnly {
 		if err := env.checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
 			return VolumeHostPathAndMode{}, err
 		}
 	}
 
+	mountReadOnly := attachedReadOnly || !volumeMountWantsReadWrite
 	deviceMountPoint, err := env.createNewMountPath("gce-persistent-disk", volume.PdName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := env.mountDevice(devicePath, deviceMountPoint, volume.FsType, readOnly); err != nil {
+	if err := env.mountDevice(devicePath, deviceMountPoint, volume.FsType, mountReadOnly); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 
 	// Success!
-	return VolumeHostPathAndMode{deviceMountPoint, readOnly}, nil
+	return VolumeHostPathAndMode{deviceMountPoint, mountReadOnly}, nil
 }
 
-// Determine whether the GCE Persistent Disk is attached RO or RW.
-func (env VolumesModuleEnv) checkIfGcePersistentDiskIsReadOnly(pdName string) (readOnly bool, err error) {
-	// TODO: Implement reading the metadata.
-	err = nil
-	readOnly = false
-	return
+func (env VolumesModuleEnv) buildDiskMetadataReadOnlyMap() (map[string]bool, error) {
+	diskMetadataReadOnlyMap := map[string]bool{}
+
+	diskMetadataJson, err := env.MetadataProvider.RetrieveDisksMetadataAsJson()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve disk metadata: %s", err)
+	}
+
+	var parsedMetadata []struct {
+		// Note: there are other fields in the list, but they're irrelevant for our purpose.
+		DeviceName string
+		Mode       string
+	}
+	err = json.Unmarshal(diskMetadataJson, &parsedMetadata)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal disk metadata JSON: %s", err)
+	}
+
+	for _, entry := range parsedMetadata {
+		if entry.DeviceName == "" {
+			return nil, fmt.Errorf("Received empty device name in the metadata: %+v", parsedMetadata)
+		}
+		switch entry.Mode {
+		case "READ_WRITE":
+			diskMetadataReadOnlyMap[entry.DeviceName] = false
+		case "READ_ONLY":
+			diskMetadataReadOnlyMap[entry.DeviceName] = true
+		default:
+			return nil, fmt.Errorf("Received unknown device mode from metadata for device %s: %s", entry.DeviceName, entry.Mode)
+		}
+	}
+	return diskMetadataReadOnlyMap, nil
 }
 
 func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
