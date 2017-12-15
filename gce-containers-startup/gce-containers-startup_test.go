@@ -796,8 +796,8 @@ func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.outputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
 	mockCommandRunner.outputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), "")
 
@@ -826,8 +826,8 @@ func TestExecStartup_pdValidAndFormatted_mountReadOnly(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.outputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
 	mockCommandRunner.outputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o ro -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), "")
 
@@ -856,7 +856,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.outputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o ro -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), "")
 
 	err := ExecStartupWithMocksAndFakes(
@@ -918,8 +918,8 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 	devPath := GCE_PD_DEV_PATH + "-part8"
 	mockCommandRunner.registerDeviceForStat(devPath)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+devPath, "ext4")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+devPath, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+devPath, "ext4")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+devPath, "")
 	mockCommandRunner.outputOnCall("fsck.ext4 -p "+devPath, "fsck running running... done!")
 	mockCommandRunner.outputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t ext4 %s %s", devPath, GCE_PD_HOST_MOUNT_PATH), "")
 
@@ -973,8 +973,8 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.outputOnCall("mkfs.ext4 "+GCE_PD_DEV_PATH, "omnomnom formatting formatting... done!")
 	mockCommandRunner.outputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), "")
 
@@ -1003,8 +1003,8 @@ func TestExecStartup_pdValidAndNotFormattedButMkfsFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.errorOnCall("mkfs.ext4 "+GCE_PD_DEV_PATH, fmt.Errorf("mkfs enters an infinite loop for a while"))
 
 	err := ExecStartupWithMocksAndFakes(
@@ -1022,8 +1022,8 @@ func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "/somewhere/over/the/rainbow")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "/somewhere/over/the/rainbow")
 
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -1041,8 +1041,8 @@ func TestExecStartup_pdValidButLsblkFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.errorOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, fmt.Errorf("SOMETHING WICKED THIS WAY COMES"))
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.errorOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, fmt.Errorf("SOMETHING WICKED THIS WAY COMES"))
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -1060,8 +1060,8 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.registerDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.registerMkdirAll(GCE_PD_HOST_MOUNT_PATH)
-	mockCommandRunner.outputOnCall("lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
-	mockCommandRunner.outputOnCall("lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.outputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
 	mockCommandRunner.errorOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), fmt.Errorf("REFUSED TO MOUNT"))
 

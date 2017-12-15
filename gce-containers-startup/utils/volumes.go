@@ -289,6 +289,17 @@ func (env VolumesModuleEnv) createNewMountPath(volumeFamily string, volumeName s
 	}
 }
 
+func wrapToEnterHostMountNamespace(origCommandline ...string) []string {
+	if *hostProcPathFlag == "" {
+		return origCommandline
+	}
+	// Change the mount namespace to the host one. Note that we're
+	// not able to access the mounted directory afterwards (without
+	// yet another nsenter call).
+	nsenterCommandline := []string{"nsenter", fmt.Sprintf("--mount=%s/1/ns/mnt", *hostProcPathFlag), "--"}
+	return append(nsenterCommandline, origCommandline...)
+}
+
 // Attempt to mount the device under a generated path. Assumes the device
 // contains an clean filesystem.
 func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
@@ -301,14 +312,7 @@ func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsT
 		mountOpts = append(mountOpts, "rw")
 	}
 	mountCommandline := []string{"mount", "-o", strings.Join(mountOpts, ","), "-t", fsType, devicePath, mountPath}
-	if *hostProcPathFlag != "" {
-		// Change the mount namespace to the host one. Note that we're
-		// not able to access the mounted directory afterwards (without
-		// yet another nsenter call).
-		nsenterCommandline := []string{"nsenter", fmt.Sprintf("--mount=%s/1/ns/mnt", *hostProcPathFlag), "--"}
-		mountCommandline = append(nsenterCommandline, mountCommandline...)
-	}
-	_, err := env.OsCommandRunner.Run(mountCommandline...)
+	_, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace(mountCommandline...)...)
 	if err != nil {
 		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
 	} else {
@@ -400,7 +404,7 @@ func (env VolumesModuleEnv) checkDeviceNotMounted(devicePath string) error {
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
 func (env VolumesModuleEnv) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
-	output, err := env.OsCommandRunner.Run("lsblk", "-n", "-o", property, devicePath)
+	output, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk", "-n", "-o", property, devicePath)...)
 	if err != nil {
 		return "", err
 	}
