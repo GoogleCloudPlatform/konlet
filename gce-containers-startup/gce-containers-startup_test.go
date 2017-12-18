@@ -891,7 +891,7 @@ func TestExecStartup_pdValidButMetadataNotFound(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		SINGLE_DISK_METADATA) // GCE PD not in this metadata.
 
-	assertError(t, err, "Failed to start container: Volume pd1: Could not determine if the GCE Persistent disk gce-pd-name-here is attached read-only or read-write.")
+	assertError(t, err, "Failed to start container: Volume pd1: Could not determine if the GCE Persistent Disk gce-pd-name-here is attached read-only or read-write.")
 }
 
 func TestExecStartup_pdValidAndFormatted_attachedReadOnlyButReadWriteWanted(t *testing.T) {
@@ -907,7 +907,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnlyButReadWriteWanted(t *t
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RO_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume pd1: Volume mount requires read-write access, but the GCE persistent disk gce-pd-name-here is attached read-only.")
+	assertError(t, err, "Failed to start container: Volume pd1: Volume mount requires read-write access, but the GCE Persistent Disk gce-pd-name-here is attached read-only.")
 }
 
 func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {

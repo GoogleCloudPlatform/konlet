@@ -183,7 +183,7 @@ func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume) (V
 
 func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
 	if _, statError := env.OsCommandRunner.Stat(volume.Path); statError != nil {
-		return VolumeHostPathAndMode{}, fmt.Errorf("HostPath directory error: %s", statError)
+		return VolumeHostPathAndMode{}, fmt.Errorf("HostPath directory error: %s: %s", volume.Path, statError)
 	}
 	// TODO: Check file/directory permissions.
 	return VolumeHostPathAndMode{hostPath: volume.Path, readOnly: false}, nil
@@ -193,16 +193,16 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 	if volume.FsType != "" && volume.FsType != ext4FsType {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported filesystem type: %s", volume.FsType)
 	}
-	volume.FsType = ext4FsType
+	chosenFsType := ext4FsType
 	if volume.PdName == "" {
-		return VolumeHostPathAndMode{}, fmt.Errorf("Empty PD name!")
+		return VolumeHostPathAndMode{}, fmt.Errorf("Empty GCE Persistent Disk name!")
 	}
-	attachedReadOnly, found := diskMetadataReadOnlyMap[volume.PdName]
-	if !found {
-		return VolumeHostPathAndMode{}, fmt.Errorf("Could not determine if the GCE Persistent disk %s is attached read-only or read-write.", volume.PdName)
+	attachedReadOnly, diskMetadataFound := diskMetadataReadOnlyMap[volume.PdName]
+	if !diskMetadataFound {
+		return VolumeHostPathAndMode{}, fmt.Errorf("Could not determine if the GCE Persistent Disk %s is attached read-only or read-write.", volume.PdName)
 	}
 	if attachedReadOnly && volumeMountWantsReadWrite {
-		return VolumeHostPathAndMode{}, fmt.Errorf("Volume mount requires read-write access, but the GCE persistent disk %s is attached read-only.", volume.PdName)
+		return VolumeHostPathAndMode{}, fmt.Errorf("Volume mount requires read-write access, but the GCE Persistent Disk %s is attached read-only.", volume.PdName)
 	}
 	devicePath, err := resolveGcePersistentDiskDevicePath(volume.PdName)
 	if err != nil {
@@ -219,7 +219,7 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 		return VolumeHostPathAndMode{}, err
 	}
 	if !attachedReadOnly {
-		if err := env.checkFilesystemAndFormatIfNeeded(devicePath, volume.FsType); err != nil {
+		if err := env.checkFilesystemAndFormatIfNeeded(devicePath, chosenFsType); err != nil {
 			return VolumeHostPathAndMode{}, err
 		}
 	}
@@ -229,7 +229,7 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := env.mountDevice(devicePath, deviceMountPoint, volume.FsType, mountReadOnly); err != nil {
+	if err := env.mountDevice(devicePath, deviceMountPoint, chosenFsType, mountReadOnly); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 
@@ -311,7 +311,11 @@ func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsT
 	} else {
 		mountOpts = append(mountOpts, "rw")
 	}
-	mountCommandline := []string{"mount", "-o", strings.Join(mountOpts, ","), "-t", fsType, devicePath, mountPath}
+	mountCommandline := []string{"mount"}
+	if len(mountOpts) > 0 {
+		mountCommandline = append(mountCommandline, "-o", strings.Join(mountOpts, ","))
+	}
+	mountCommandline = append(mountCommandline, "-t", fsType, devicePath, mountPath)
 	_, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace(mountCommandline...)...)
 	if err != nil {
 		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
