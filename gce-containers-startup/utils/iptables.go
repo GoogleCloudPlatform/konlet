@@ -15,9 +15,9 @@
 package utils
 
 import (
-	"os/exec"
-	"log"
 	"fmt"
+	"log"
+	"os/exec"
 )
 
 func printOutput(outs []byte) {
@@ -28,6 +28,7 @@ func printOutput(outs []byte) {
 
 func OpenIptablesForProtocol(protocol string) error {
 	log.Printf("Updating IPtables firewall rules - allowing %s traffic on all ports", protocol)
+	// TODO: Make it use osCommandRunner.
 	var cmd = exec.Command("iptables", "-A", "INPUT", "-p", protocol, "-j", "ACCEPT")
 	var output, err = cmd.CombinedOutput()
 

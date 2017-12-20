@@ -27,5 +27,8 @@ docker run --rm --privileged \
   --net="host" \
   -v=/var/run/docker.sock:/var/run/docker.sock \
   -v=/etc/profile.d:/host/etc/profile.d \
+  -v=/dev:/dev \
+  -v=/mnt:/mnt \
+  -v=/proc:/host_proc \
   gcr.io/gce-containers/konlet:v.alpha.0.7-latest
 

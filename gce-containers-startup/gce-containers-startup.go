@@ -15,72 +15,36 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"log"
 	"flag"
+	"fmt"
+	"log"
 
-	yaml "gopkg.in/yaml.v2"
-	utils "github.com/konlet/utils"
 	api "github.com/konlet/types"
+	utils "github.com/konlet/utils"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const METADATA_SERVER = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/gce-container-declaration"
 
 var (
-	tokenFlag = flag.String("token", "", "what token to use")
-	manifestUrlFlag = flag.String("manifest-url", "", "URL for loading container manifest")
+	tokenFlag       = flag.String("token", "", "what token to use")
 	runDetachedFlag = flag.Bool("detached", true, "should we run container detached")
 	showWelcomeFlag = flag.Bool("show-welcome", true, "should we show welcome on SSH to host OS")
-	openIptables = flag.Bool("open-iptables", true, "should we open IP Tables")
+	openIptables    = flag.Bool("open-iptables", true, "should we open IP Tables")
 )
-
-type ManifestProvider interface {
-	RetrieveManifest() ([]byte, error)
-}
-
-type DefaultManifestProvider struct {
-}
-
-func (provider DefaultManifestProvider) RetrieveManifest() ([]byte, error) {
-	client := &http.Client{}
-	metadataPath := METADATA_SERVER
-	if *manifestUrlFlag != "" {
-		log.Printf("Retrieving container declaration from '%s' \n", *manifestUrlFlag)
-		metadataPath = *manifestUrlFlag
-	}
-
-	request, err := http.NewRequest("GET", metadataPath, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	request.Header.Add("Metadata-Flavor", "Google")
-	resp, err := client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Cannot read container declaration: (%s).\n", resp.Status)
-	}
-
-	return ioutil.ReadAll(resp.Body)
-}
 
 func main() {
 	log.Printf("Starting Konlet container startup agent")
 	flag.Parse()
 
-	var manifestProvider ManifestProvider
-	manifestProvider = DefaultManifestProvider{}
+	var metadataProvider utils.MetadataProviderInterface
+	metadataProvider = utils.DefaultMetadataProvider{}
 
 	var authProvider utils.AuthProvider
 	if *tokenFlag == "" {
 		authProvider = utils.ServiceAccountTokenProvider{}
 	} else {
-		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag, }
+		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag}
 	}
 
 	runner, err := utils.GetDefaultRunner()
@@ -88,15 +52,14 @@ func main() {
 		log.Fatalf("Failed to initialize Konlet: %v", err)
 		return
 	}
-
-	err = ExecStartup(manifestProvider, authProvider, runner, *openIptables)
+	err = ExecStartup(metadataProvider, authProvider, runner, *openIptables)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 }
 
-func ExecStartup(manifestProvider ManifestProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
-	body, err := manifestProvider.RetrieveManifest()
+func ExecStartup(metadataProvider utils.MetadataProviderInterface, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
+	body, err := metadataProvider.RetrieveManifest()
 	if err != nil {
 		return fmt.Errorf("Cannot load container declaration: %v", err)
 	}

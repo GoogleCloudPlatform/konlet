@@ -107,6 +107,7 @@ type HostPathVolume struct {
 }
 
 type GcePersistentDiskVolume struct {
-	PdName string `yaml:"pdName"`
-	FsType string `yaml:"fsType"`
+	PdName    string `yaml:"pdName"`
+	FsType    string `yaml:"fsType,omitempty"`
+	Partition int    `yaml:"partition,omitempty"`
 }
