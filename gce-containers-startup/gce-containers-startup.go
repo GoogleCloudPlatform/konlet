@@ -47,7 +47,7 @@ func main() {
 		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag}
 	}
 
-	runner, err := utils.GetDefaultRunner()
+	runner, err := utils.GetDefaultRunner(metadataProvider)
 	if err != nil {
 		log.Fatalf("Failed to initialize Konlet: %v", err)
 		return
