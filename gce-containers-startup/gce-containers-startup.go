@@ -77,13 +77,13 @@ func ExecStartup(metadataProvider utils.MetadataProviderInterface, authProvider 
 
 	var auth = ""
 
-	if !utils.IsDefaultRegistryMatch(spec.Containers[0].Image) {
+	if utils.UseGcpTokenForImage(spec.Containers[0].Image) {
 		auth, err = authProvider.RetrieveAuthToken()
 		if err != nil {
 			return fmt.Errorf("Cannot get auth token: %v", err)
 		}
 	} else {
-		log.Printf("Default registry used - Konlet will use empty auth")
+		log.Printf("Non-GCR registry used - Konlet will use empty auth")
 	}
 
 	if openIptables {

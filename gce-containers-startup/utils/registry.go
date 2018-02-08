@@ -16,29 +16,15 @@ package utils
 
 import "strings"
 
-// isDefaultRegistryMatch determines whether the given image will
-// pull from the default registry (DockerHub) based on the
-// characteristics of its name.
-func IsDefaultRegistryMatch(image string) bool {
+// Returns true iff the provided image string points to repository
+// that uses a GCP token. Currently, that is:
+//  - gcr.io
+func UseGcpTokenForImage(image string) bool {
 	parts := strings.SplitN(image, "/", 2)
 
 	if len(parts[0]) == 0 {
 		return false
 	}
 
-	if len(parts) == 1 {
-		// e.g. library/ubuntu
-		return true
-	}
-
-	if parts[0] == "docker.io" || parts[0] == "index.docker.io" {
-		// resolve docker.io/image and index.docker.io/image as default registry
-		return true
-	}
-
-	// From: http://blog.docker.com/2013/07/how-to-use-your-own-registry/
-	// Docker looks for either a “.” (domain separator) or “:” (port separator)
-	// to learn that the first part of the repository name is a location and not
-	// a user name.
-	return !strings.ContainsAny(parts[0], ".:")
+	return strings.HasSuffix(strings.ToLower(parts[0]), "gcr.io")
 }
