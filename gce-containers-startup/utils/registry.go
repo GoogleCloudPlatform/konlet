@@ -26,5 +26,7 @@ func UseGcpTokenForImage(image string) bool {
 		return false
 	}
 
-	return strings.HasSuffix(strings.ToLower(parts[0]), "gcr.io")
+	hostname := strings.ToLower(parts[0])
+
+	return hostname == "gcr.io" || strings.HasSuffix(hostname, ".gcr.io")
 }

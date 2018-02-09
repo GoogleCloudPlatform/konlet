@@ -40,6 +40,7 @@ func TestDefaultRegistry_gcr(t *testing.T) {
 	assertRegistryGetsToken(t, "gcr.io/google-containers/nginx", true)
 	assertRegistryGetsToken(t, "gcr.io/google-containers/nginx:1.2", true)
 	assertRegistryGetsToken(t, "asia.gcr.io/other-containers/busybox", true)
+	assertRegistryGetsToken(t, "oh.my.this-is-not-gcr.io/other-containers/busybox", false)
 }
 
 func assertRegistryGetsToken(t *testing.T, image string, expectedToken bool) {
