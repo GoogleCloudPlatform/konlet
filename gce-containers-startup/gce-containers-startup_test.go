@@ -671,7 +671,7 @@ func TestExecStartup_options(t *testing.T) {
 	assertEqual(t, dockerstrslice.StrSlice([]string{"1000"}), mockDockerClient.CreateRequest.Cmd, "")
 	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	assertEqual(t, mockDockerClient.HostConfig.Privileged, true, "")
-	assertEqual(t, mockDockerClient.CreateRequest.StdinOnce, true, "")
+	assertEqual(t, mockDockerClient.CreateRequest.OpenStdin, true, "")
 	assertEqual(t, mockDockerClient.CreateRequest.Tty, true, "")
 	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
@@ -738,7 +738,7 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 	assertEqual(t, mockDockerClient.HostConfig.Privileged, false, "")
 	assertEqual(t, mockDockerClient.HostConfig.RestartPolicy.Name, "on-failure", "")
 	assertEqual(t, mockDockerClient.CreateRequest.User, "", "")
-	assertEqual(t, mockDockerClient.CreateRequest.StdinOnce, false, "")
+	assertEqual(t, mockDockerClient.CreateRequest.OpenStdin, false, "")
 	assertEqual(t, mockDockerClient.CreateRequest.Tty, false, "")
 }
 
@@ -1105,7 +1105,7 @@ func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
 	assertEqual(t, api.HostConfig.Privileged, false, "")
 	assertEqual(t, api.HostConfig.RestartPolicy.Name, "always", "")
 	assertEqual(t, api.CreateRequest.User, "", "")
-	assertEqual(t, api.CreateRequest.StdinOnce, false, "")
+	assertEqual(t, api.CreateRequest.OpenStdin, false, "")
 	assertEqual(t, api.CreateRequest.Tty, false, "")
 }
 
