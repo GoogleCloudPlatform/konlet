@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"golang.org/x/net/context"
 
@@ -180,11 +181,12 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 	}
 
 	container := spec.Containers[0]
+	printWarningIfLikelyHasMistake(container.Command, container.Args)
+
 	var runCommand dockerstrslice.StrSlice
 	if container.Command != nil {
 		runCommand = dockerstrslice.StrSlice(container.Command)
 	}
-
 	var runArgs dockerstrslice.StrSlice
 	if container.Args != nil {
 		runArgs = dockerstrslice.StrSlice(container.Args)
@@ -299,4 +301,25 @@ func contextError(ctx context.Context, operationType string) error {
 		return operationTimeout{err: ctx.Err(), operationType: operationType}
 	}
 	return ctx.Err()
+}
+
+func printWarningIfLikelyHasMistake(command []string, args []string) {
+	var commandAndArgs []string
+	if command != nil {
+		commandAndArgs = append(commandAndArgs, command...)
+	}
+	if args != nil {
+		commandAndArgs = append(commandAndArgs, args...)
+	}
+	if len(commandAndArgs) == 1 {
+		fields := strings.Fields(commandAndArgs[0])
+		if len(fields) > 1 {
+			log.Printf("Warning: executable \"%s\" contains whitespace, which is "+
+				"likely not what you intended. If your intention was to provide "+
+				"arguments to \"%s\" and you are using gcloud, use the "+
+				"\"--container-arg\" option. If you are using Google Cloud Console, "+
+				"specify the arguments separately under \"Command and arguments\" in "+
+				"\"Advanced container options\".", commandAndArgs[0], fields[0])
+		}
+	}
 }
