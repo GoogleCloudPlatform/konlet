@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/context"
 
@@ -311,7 +312,7 @@ func printWarningIfLikelyHasMistake(command []string, args []string) {
 	if args != nil {
 		commandAndArgs = append(commandAndArgs, args...)
 	}
-	if len(commandAndArgs) == 1 {
+	if len(commandAndArgs) == 1 && containsWhitespace(commandAndArgs[0]) {
 		fields := strings.Fields(commandAndArgs[0])
 		if len(fields) > 1 {
 			log.Printf("Warning: executable \"%s\" contains whitespace, which is "+
@@ -320,6 +321,19 @@ func printWarningIfLikelyHasMistake(command []string, args []string) {
 				"\"--container-arg\" option. If you are using Google Cloud Console, "+
 				"specify the arguments separately under \"Command and arguments\" in "+
 				"\"Advanced container options\".", commandAndArgs[0], fields[0])
+		} else {
+			log.Printf("Warning: executable \"%s\" contains whitespace, which is "+
+				"likely not what you intended. Maybe you accidentally left "+
+				"leading/trailing whitespace?", commandAndArgs[0])
 		}
 	}
+}
+
+func containsWhitespace(s string) bool {
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			return true
+		}
+	}
+	return false
 }
