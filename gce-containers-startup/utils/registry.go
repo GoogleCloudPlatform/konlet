@@ -22,7 +22,7 @@ import "strings"
 func UseGcpTokenForImage(image string) bool {
 	parts := strings.SplitN(image, "/", 2)
 
-	if len(parts[0]) == 0 {
+	if len(parts) < 2 || len(parts[0]) == 0 {
 		return false
 	}
 
