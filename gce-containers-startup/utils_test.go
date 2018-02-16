@@ -15,38 +15,37 @@
 package main
 
 import (
-	"testing"
-	utils "github.com/konlet/utils"
 	"fmt"
+	"testing"
+
+	utils "github.com/konlet/utils"
 )
 
 func TestDefaultRegistry_default(t *testing.T) {
-	assertDefaultRegistry(t, "tomcat", true);
-	assertDefaultRegistry(t, "tomcat:1.1", true);
+	assertRegistryGetsToken(t, "tomcat", false)
+	assertRegistryGetsToken(t, "tomcat:1.1", false)
 }
 
 func TestDefaultRegistry_dockerIo(t *testing.T) {
-	assertDefaultRegistry(t, "docker.io/tomcat", true);
-	assertDefaultRegistry(t, "index.docker.io/tomcat", true);
-	assertDefaultRegistry(t, "docker.io/tomcat:1.1", true);
+	assertRegistryGetsToken(t, "docker.io/tomcat", false)
+	assertRegistryGetsToken(t, "index.docker.io/tomcat", false)
+	assertRegistryGetsToken(t, "docker.io/tomcat:1.1", false)
 }
 
 func TestDefaultRegistry_localRegistry(t *testing.T) {
-	assertDefaultRegistry(t, "localhost.localdomain:5000/ubuntu", false);
+	assertRegistryGetsToken(t, "localhost.localdomain:5000/ubuntu", false)
 }
 
 func TestDefaultRegistry_gcr(t *testing.T) {
-	assertDefaultRegistry(t, "gcr.io/google-containers/nginx", false);
-	assertDefaultRegistry(t, "gcr.io/google-containers/nginx:1.2", false);
+	assertRegistryGetsToken(t, "gcr.io/google-containers/nginx", true)
+	assertRegistryGetsToken(t, "gcr.io/google-containers/nginx:1.2", true)
+	assertRegistryGetsToken(t, "asia.gcr.io/other-containers/busybox", true)
+	assertRegistryGetsToken(t, "oh.my.this-is-not-gcr.io/other-containers/busybox", false)
 }
 
-func assertDefaultRegistry(t *testing.T, image string, expectedDefault bool) {
-	var errMsg = "default";
-	if expectedDefault {
-		errMsg = "non-default"
-	}
+func assertRegistryGetsToken(t *testing.T, image string, expectedToken bool) {
 	assertEqual(t,
-		utils.IsDefaultRegistryMatch(image),
-		expectedDefault,
-		fmt.Sprintf("registry for %s was expected to be %s", image, errMsg));
+		utils.UseGcpTokenForImage(image),
+		expectedToken,
+		fmt.Sprintf("registry for %s: unexpected use token: %t", image, !expectedToken))
 }
