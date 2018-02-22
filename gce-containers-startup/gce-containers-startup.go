@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
 	api "github.com/konlet/types"
 	utils "github.com/konlet/utils"
@@ -34,6 +35,8 @@ var (
 )
 
 func main() {
+	defer exitHandler()
+
 	log.Printf("Starting Konlet container startup agent")
 	flag.Parse()
 
@@ -49,12 +52,11 @@ func main() {
 
 	runner, err := utils.GetDefaultRunner(metadataProvider)
 	if err != nil {
-		log.Fatalf("Failed to initialize Konlet: %v", err)
-		return
+		log.Panicf("Failed to initialize Konlet: %v", err)
 	}
 	err = ExecStartup(metadataProvider, authProvider, runner, *openIptables)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Panicf("Error: %v", err)
 	}
 }
 
@@ -99,10 +101,15 @@ func ExecStartup(metadataProvider utils.MetadataProviderInterface, authProvider 
 		return fmt.Errorf("Failed to start container: %v", err)
 	}
 
-	if *showWelcomeFlag {
-		log.Print("Saving welcome script to profile.d")
-		utils.WriteWelcomeScript()
-	}
-
 	return nil
+}
+
+func exitHandler() {
+	err := recover()
+	if *showWelcomeFlag {
+		utils.WriteWelcomeScript(err)
+	}
+	if err != nil {
+		os.Exit(1)
+	}
 }
