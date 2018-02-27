@@ -14,7 +14,7 @@
 
 package(default_visibility = ["//visibility:public"])
 
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
@@ -25,6 +25,7 @@ go_library(
         "os-command.go",
         "registry.go",
         "run-mode.go",
+        "testing.go",
         "volumes.go",
         "welcome-message.go",
     ],
@@ -38,4 +39,12 @@ go_library(
         "//vendor:github.com/google/shlex",
         "//vendor:golang.org/x/net/context",
     ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "utils_test.go",
+    ],
+    embed = [":go_default_library"],
 )

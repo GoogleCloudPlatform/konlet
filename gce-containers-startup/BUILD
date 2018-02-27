@@ -55,12 +55,9 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "gce-containers-startup.go",
         "gce-containers-startup_test.go",
-        "utils_test.go",
     ],
     deps = [
-        "//types:go_default_library",
         "//utils:go_default_library",
         "//vendor:github.com/docker/engine-api/client",
         "//vendor:github.com/docker/engine-api/types",
@@ -70,4 +67,5 @@ go_test(
         "//vendor:golang.org/x/net/context",
         "//vendor:gopkg.in/yaml.v2",
     ],
+    embed = [":go_default_library"],
 )

@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package utils
 
 import (
 	"fmt"
 	"testing"
-
-	utils "github.com/konlet/utils"
 )
 
 func TestDefaultRegistry_default(t *testing.T) {
@@ -44,8 +42,8 @@ func TestDefaultRegistry_gcr(t *testing.T) {
 }
 
 func assertRegistryGetsToken(t *testing.T, image string, expectedToken bool) {
-	assertEqual(t,
-		utils.UseGcpTokenForImage(image),
+	AssertEqual(t,
+		UseGcpTokenForImage(image),
 		expectedToken,
 		fmt.Sprintf("registry for %s: unexpected use token: %t", image, !expectedToken))
 }
