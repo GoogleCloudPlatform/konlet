@@ -15,7 +15,9 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -46,4 +48,68 @@ func assertRegistryGetsToken(t *testing.T, image string, expectedToken bool) {
 		UseGcpTokenForImage(image),
 		expectedToken,
 		fmt.Sprintf("registry for %s: unexpected use token: %t", image, !expectedToken))
+}
+
+func TestSelectScriptBasedOnStartupResult_ReturnsFailureScriptOnStartupFailure(t *testing.T) {
+	actualScript := selectScriptBasedOnStartupResult(errors.New("some error"))
+	AssertEqual(t,
+		actualScript,
+		WELCOME_SCRIPT_ON_FAILURE,
+		fmt.Sprintf("Wrong startup script. Got:\n%v\nExpected:\n%v", actualScript, WELCOME_SCRIPT_ON_FAILURE))
+}
+
+func TestSelectScriptBasedOnStartupResult_ReturnsSuccessScriptOnStartupSuccess(t *testing.T) {
+	actualScript := selectScriptBasedOnStartupResult(nil)
+	AssertEqual(t,
+		actualScript,
+		WELCOME_SCRIPT_ON_SUCCESS,
+		fmt.Sprintf("Wrong startup script. Got:\n%v\nExpected:\n%v", actualScript, WELCOME_SCRIPT_ON_SUCCESS))
+}
+
+func TestSaveScriptToFile_CallsFileWriterWithCorrectParameters(t *testing.T) {
+	writer := &MockFileWriter{}
+	dummyScript := "test script"
+	saveScriptToFile(dummyScript, writer, &MockLogger{})
+	AssertEqual(t, writer.filename, SCRIPT_PATH, "")
+	AssertEqual(t, writer.data, []byte(dummyScript), "")
+	AssertEqual(t, writer.perm, os.FileMode(0755), "")
+}
+
+func TestSaveScriptToFile_PrintsLogAndReturnsError(t *testing.T) {
+	tests := []struct {
+		err error
+		log string
+	}{
+		{errors.New("some error"), "Failed to save welcome script to profile.d"},
+		{nil, "Saving welcome script to profile.d"},
+	}
+
+	for _, test := range tests {
+		logger := &MockLogger{}
+		actualError := saveScriptToFile("test script", &MockFileWriter{returnValue: test.err}, logger)
+		AssertEqual(t, actualError, test.err, "")
+		AssertEqual(t, logger.message, test.log, "")
+	}
+}
+
+type MockFileWriter struct {
+	returnValue error
+	filename    string
+	data        []byte
+	perm        os.FileMode
+}
+
+func (writer *MockFileWriter) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	writer.filename = filename
+	writer.data = data
+	writer.perm = perm
+	return writer.returnValue
+}
+
+type MockLogger struct {
+	message string
+}
+
+func (logger *MockLogger) Print(v ...interface{}) {
+	logger.message = fmt.Sprint(v...)
 }
