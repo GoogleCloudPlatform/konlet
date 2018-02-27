@@ -15,8 +15,9 @@
 package utils
 
 import (
-    "io/ioutil"
-    "log"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 const WELCOME_SCRIPT_ON_SUCCESS = `#!/bin/bash
@@ -35,22 +36,49 @@ echo -e "\033[0;31m  #  'sudo journalctl -u konlet-startup' command.           #
 echo -e "\033[0;31m  ###########################################################\033[0m"
 echo -e "\033[0;31m                                                             \033[0m"
 `
-const SCRIPT_DIR = "/host/etc/profile.d"
+const SCRIPT_PATH = "/host/etc/profile.d/gce-containers-welcome.sh"
 
 func WriteWelcomeScript(startupErr interface{}) error {
-  var script string
-  if startupErr == nil {
-    script = WELCOME_SCRIPT_ON_SUCCESS
-  } else {
-    script = WELCOME_SCRIPT_ON_FAILURE
-  }
-  data := []byte(script)
-  writeErr := ioutil.WriteFile(SCRIPT_DIR + "/gce-containers-welcome.sh", data, 0755)
-  if writeErr != nil {
-    log.Print("Failed to save welcome script to profile.d")
-    return writeErr
-  } else {
-    log.Print("Saving welcome script to profile.d")
-    return nil
-  }
+	script := selectScriptBasedOnStartupResult(startupErr)
+	return saveScriptToFile(script, RealFileWriter{}, RealLogger{})
+}
+
+func selectScriptBasedOnStartupResult(startupErr interface{}) string {
+	if startupErr == nil {
+		return WELCOME_SCRIPT_ON_SUCCESS
+	} else {
+		return WELCOME_SCRIPT_ON_FAILURE
+	}
+}
+
+func saveScriptToFile(script string, fileWriter FileWriterInterface, logger LoggerInterface) error {
+	data := []byte(script)
+	writeErr := fileWriter.WriteFile(SCRIPT_PATH, data, 0755)
+	if writeErr != nil {
+		logger.Print("Failed to save welcome script to profile.d")
+		return writeErr
+	} else {
+		logger.Print("Saving welcome script to profile.d")
+		return nil
+	}
+}
+
+type FileWriterInterface interface {
+	WriteFile(filename string, data []byte, perm os.FileMode) error
+}
+
+type RealFileWriter struct{}
+
+func (_ RealFileWriter) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	return ioutil.WriteFile(filename, data, perm)
+}
+
+type LoggerInterface interface {
+	Print(v ...interface{})
+}
+
+type RealLogger struct{}
+
+func (_ RealLogger) Print(v ...interface{}) {
+	log.Print(v...)
 }
