@@ -19,7 +19,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -513,12 +512,12 @@ func TestExecStartup_simple(t *testing.T) {
 		SIMPLE_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -532,14 +531,14 @@ func TestExecStartup_runCommand(t *testing.T) {
 		RUN_COMMAND_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"-l", "/tmp"}), mockDockerClient.CreateRequest.Cmd, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"-l", "/tmp"}), mockDockerClient.CreateRequest.Cmd, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -552,14 +551,14 @@ func TestExecStartup_runArgs(t *testing.T) {
 		RUN_ARGS_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"echo"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"-n", "Hello \" world", "Welco'me"}), mockDockerClient.CreateRequest.Cmd, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"echo"}), mockDockerClient.CreateRequest.Entrypoint, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"-n", "Hello \" world", "Welco'me"}), mockDockerClient.CreateRequest.Cmd, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -572,14 +571,14 @@ func TestExecStartup_env(t *testing.T) {
 		ENVVARS_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-env-vars", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-env-vars", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
+	utils.AssertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -593,16 +592,16 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 		VOLUME_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
+	utils.AssertNoError(t, err)
 	tmpFsBinds := map[string]string{}
 	tmpFsBinds["/tmp/host-2"] = ""
-	assertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{"/tmp:/tmp/host-1:ro", "/tmp:/tmp/host-3", "/tmp:/tmp/host-4"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{"/tmp:/tmp/host-1:ro", "/tmp:/tmp/host-3", "/tmp:/tmp/host-4"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -615,7 +614,7 @@ func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
 		INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Exactly one volume specification required for volume testVolume, 2 found.")
+	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Exactly one volume specification required for volume testVolume, 2 found.")
 }
 
 func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
@@ -627,7 +626,7 @@ func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
 		INVALID_VOLUME_MANIFEST_UNMAPPED,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume referenced in container test-volume (index: 0) not found in volume definitions.")
+	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume referenced in container test-volume (index: 0) not found in volume definitions.")
 }
 
 func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
@@ -639,7 +638,7 @@ func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
 		INVALID_VOLUME_MANIFEST_UNREFERENCED,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume not referenced by any container.")
+	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume not referenced by any container.")
 }
 
 func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
@@ -651,7 +650,7 @@ func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
 		INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume testVolume: Unsupported emptyDir volume medium: Tablet")
+	utils.AssertError(t, err, "Failed to start container: Volume testVolume: Unsupported emptyDir volume medium: Tablet")
 }
 
 func TestExecStartup_options(t *testing.T) {
@@ -663,17 +662,17 @@ func TestExecStartup_options(t *testing.T) {
 		OPTIONS_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-options", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"sleep"}), mockDockerClient.CreateRequest.Entrypoint, "")
-	assertEqual(t, dockerstrslice.StrSlice([]string{"1000"}), mockDockerClient.CreateRequest.Cmd, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, mockDockerClient.HostConfig.Privileged, true, "")
-	assertEqual(t, mockDockerClient.CreateRequest.OpenStdin, true, "")
-	assertEqual(t, mockDockerClient.CreateRequest.Tty, true, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-options", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"sleep"}), mockDockerClient.CreateRequest.Entrypoint, "")
+	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"1000"}), mockDockerClient.CreateRequest.Cmd, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, mockDockerClient.HostConfig.Privileged, true, "")
+	utils.AssertEqual(t, mockDockerClient.CreateRequest.OpenStdin, true, "")
+	utils.AssertEqual(t, mockDockerClient.CreateRequest.Tty, true, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
 }
 
@@ -686,12 +685,12 @@ func TestExecStartup_removeContainer(t *testing.T) {
 		REMOVE_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-remove", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-remove", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
 }
 
@@ -704,7 +703,7 @@ func TestExecStartup_noMultiContainer(t *testing.T) {
 		MULTICONTAINER_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Container declaration should include exactly 1 container, 2 found")
+	utils.AssertError(t, err, "Container declaration should include exactly 1 container, 2 found")
 }
 
 func TestExecStartup_emptyManifest(t *testing.T) {
@@ -716,7 +715,7 @@ func TestExecStartup_emptyManifest(t *testing.T) {
 		"",
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Container declaration should include exactly 1 container, 0 found")
+	utils.AssertError(t, err, "Container declaration should include exactly 1 container, 0 found")
 }
 
 func TestExecStartup_restartPolicy(t *testing.T) {
@@ -728,18 +727,18 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 		RESTART_POLICY_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-restart-policy", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-restart-policy", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
-	assertEqual(t, mockDockerClient.HostConfig.Privileged, false, "")
-	assertEqual(t, mockDockerClient.HostConfig.RestartPolicy.Name, "on-failure", "")
-	assertEqual(t, mockDockerClient.CreateRequest.User, "", "")
-	assertEqual(t, mockDockerClient.CreateRequest.OpenStdin, false, "")
-	assertEqual(t, mockDockerClient.CreateRequest.Tty, false, "")
+	utils.AssertEqual(t, mockDockerClient.HostConfig.Privileged, false, "")
+	utils.AssertEqual(t, mockDockerClient.HostConfig.RestartPolicy.Name, "on-failure", "")
+	utils.AssertEqual(t, mockDockerClient.CreateRequest.User, "", "")
+	utils.AssertEqual(t, mockDockerClient.CreateRequest.OpenStdin, false, "")
+	utils.AssertEqual(t, mockDockerClient.CreateRequest.Tty, false, "")
 }
 
 func TestExecStartup_invalidRestartPolicy(t *testing.T) {
@@ -751,7 +750,7 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 		INVALID_RESTART_POLICY_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
+	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Unsupported container restart policy 'EachSunday'")
 }
 
 func TestExecStartup_problem(t *testing.T) {
@@ -764,11 +763,11 @@ func TestExecStartup_problem(t *testing.T) {
 		PROBLEM_MANIFEST,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
+	utils.AssertNoError(t, err)
 	tmpFsBinds := map[string]string{}
 	tmpFsBinds["/tmp-tmpfs"] = ""
-	assertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
 }
 
 func TestExecStartup_ignorePodFields(t *testing.T) {
@@ -780,12 +779,12 @@ func TestExecStartup_ignorePodFields(t *testing.T) {
 		MANIFEST_WITH_IGNORED_POD_FIELDS,
 		SINGLE_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
-	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -807,13 +806,13 @@ func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.assertAllCalled()
@@ -837,13 +836,13 @@ func TestExecStartup_pdValidAndFormatted_mountReadOnly(t *testing.T) {
 		GCE_PD_VOLUME_WITH_RO_MOUNT_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.assertAllCalled()
@@ -865,13 +864,13 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 		GCE_PD_VOLUME_WITH_RO_MOUNT_MANIFEST,
 		GCE_ATTACHED_RO_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.assertAllCalled()
@@ -891,7 +890,7 @@ func TestExecStartup_pdValidButMetadataNotFound(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		SINGLE_DISK_METADATA) // GCE PD not in this metadata.
 
-	assertError(t, err, "Failed to start container: Volume pd1: Could not determine if the GCE Persistent Disk gce-pd-name-here is attached read-only or read-write.")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Could not determine if the GCE Persistent Disk gce-pd-name-here is attached read-only or read-write.")
 }
 
 func TestExecStartup_pdValidAndFormatted_attachedReadOnlyButReadWriteWanted(t *testing.T) {
@@ -907,7 +906,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnlyButReadWriteWanted(t *t
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RO_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume pd1: Volume mount requires read-write access, but the GCE Persistent Disk gce-pd-name-here is attached read-only.")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Volume mount requires read-write access, but the GCE Persistent Disk gce-pd-name-here is attached read-only.")
 }
 
 func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
@@ -929,13 +928,13 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 		GCE_PD_VOLUME_WITH_PARTITION_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.assertAllCalled()
@@ -951,7 +950,7 @@ func TestExecStartup_pdNoSuchDevice(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume pd1: Device /dev/disk/by-id/google-gce-pd-name-here access error: MockCommandRunner.Stat(): No such file or directory: /dev/disk/by-id/google-gce-pd-name-here")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Device /dev/disk/by-id/google-gce-pd-name-here access error: MockCommandRunner.Stat(): No such file or directory: /dev/disk/by-id/google-gce-pd-name-here")
 }
 
 func TestExecStartup_pdUnsupportedFilesystem(t *testing.T) {
@@ -963,7 +962,7 @@ func TestExecStartup_pdUnsupportedFilesystem(t *testing.T) {
 		mockCommandRunner,
 		GCE_PD_VOLUME_INVALID_FS_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
-	assertError(t, err, "Failed to start container: Volume pd1: Unsupported filesystem type: nfts")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Unsupported filesystem type: nfts")
 }
 
 func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
@@ -984,13 +983,13 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertNoError(t, err)
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
-	assertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	assertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	assertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
-	assertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	assertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertNoError(t, err)
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
+	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
+	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
+	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
+	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.assertAllCalled()
@@ -1012,7 +1011,7 @@ func TestExecStartup_pdValidAndNotFormattedButMkfsFails(t *testing.T) {
 		mockCommandRunner,
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
-	assertError(t, err, "Failed to start container: Volume pd1: Failed to format filesystem: mkfs enters an infinite loop for a while")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Failed to format filesystem: mkfs enters an infinite loop for a while")
 }
 
 func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
@@ -1031,7 +1030,7 @@ func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume pd1: Device /dev/disk/by-id/google-gce-pd-name-here is already mounted at /somewhere/over/the/rainbow")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Device /dev/disk/by-id/google-gce-pd-name-here is already mounted at /somewhere/over/the/rainbow")
 }
 
 func TestExecStartup_pdValidButLsblkFails(t *testing.T) {
@@ -1050,7 +1049,7 @@ func TestExecStartup_pdValidButLsblkFails(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 
-	assertError(t, err, "Failed to start container: Volume pd1: SOMETHING WICKED THIS WAY COMES")
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: SOMETHING WICKED THIS WAY COMES")
 }
 
 func TestExecStartup_pdValidButMountFails(t *testing.T) {
@@ -1070,46 +1069,19 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 		mockCommandRunner,
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
-	assertError(t, err, "Failed to start container: Volume pd1: Failed to mount /dev/disk/by-id/google-gce-pd-name-here at /mnt/disks/gce-containers-mounts/gce-persistent-disks/gce-pd-name-here: REFUSED TO MOUNT")
-}
-
-func assertEqual(t *testing.T, a interface{}, b interface{}, message string) {
-	if reflect.DeepEqual(a, b) {
-		return
-	}
-	if len(message) == 0 {
-		message = fmt.Sprintf("'%v' != '%v'", a, b)
-	}
-	t.Fatal(message)
-}
-
-func assertNoError(t *testing.T, err error) {
-	if err != nil {
-		message := fmt.Sprintf("%v", err)
-		t.Fatalf("Unexpected error '%s'", message)
-	}
-}
-
-func assertError(t *testing.T, err error, expected string) {
-	if err == nil {
-		t.Fatal("Exected error not to be null")
-	}
-	message := fmt.Sprintf("%v", err)
-	if message != expected {
-		t.Fatalf("Exected error to be '%s', but it was '%s'", expected, message)
-	}
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Failed to mount /dev/disk/by-id/google-gce-pd-name-here at /mnt/disks/gce-containers-mounts/gce-persistent-disks/gce-pd-name-here: REFUSED TO MOUNT")
 }
 
 func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
 	api.assertDefaultSystemOptions(t)
-	assertEqual(t, api.HostConfig.Privileged, false, "")
-	assertEqual(t, api.HostConfig.RestartPolicy.Name, "always", "")
-	assertEqual(t, api.CreateRequest.User, "", "")
-	assertEqual(t, api.CreateRequest.OpenStdin, false, "")
-	assertEqual(t, api.CreateRequest.Tty, false, "")
+	utils.AssertEqual(t, api.HostConfig.Privileged, false, "")
+	utils.AssertEqual(t, api.HostConfig.RestartPolicy.Name, "always", "")
+	utils.AssertEqual(t, api.CreateRequest.User, "", "")
+	utils.AssertEqual(t, api.CreateRequest.OpenStdin, false, "")
+	utils.AssertEqual(t, api.CreateRequest.Tty, false, "")
 }
 
 func (api *MockDockerApi) assertDefaultSystemOptions(t *testing.T) {
-	assertEqual(t, api.HostConfig.AutoRemove, false, "")
-	assertEqual(t, api.HostConfig.NetworkMode.IsHost(), true, "")
+	utils.AssertEqual(t, api.HostConfig.AutoRemove, false, "")
+	utils.AssertEqual(t, api.HostConfig.NetworkMode.IsHost(), true, "")
 }

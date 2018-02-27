@@ -15,23 +15,70 @@
 package utils
 
 import (
-    "io/ioutil"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
-const WARNING_SCRIPT = `#!/bin/bash
+const WELCOME_SCRIPT_ON_SUCCESS = `#!/bin/bash
 echo -e "\033[0;33m  ########################[ Welcome ]########################\033[0m"
 echo -e "\033[0;33m  #  You have logged in to the guest OS.                    #\033[0m"
 echo -e "\033[0;33m  #  To access your containers use 'docker attach' command  #\033[0m"
 echo -e "\033[0;33m  ###########################################################\033[0m"
-echo -e "\033[0;33m                                                             \033[0m"`
+echo -e "\033[0;33m                                                             \033[0m"
+`
 
-const SCRIPT_DIR = "/host/etc/profile.d"
+const WELCOME_SCRIPT_ON_FAILURE = `#!/bin/bash
+echo -e "\033[0;31m  #########################[ Error ]#########################\033[0m"
+echo -e "\033[0;31m  #  The startup agent encountered errors. Your container   #\033[0m"
+echo -e "\033[0;31m  #  was not started. To inspect the agent's logs use       #\033[0m"
+echo -e "\033[0;31m  #  'sudo journalctl -u konlet-startup' command.           #\033[0m"
+echo -e "\033[0;31m  ###########################################################\033[0m"
+echo -e "\033[0;31m                                                             \033[0m"
+`
+const SCRIPT_PATH = "/host/etc/profile.d/gce-containers-welcome.sh"
 
-func WriteWelcomeScript() error {
-	data := []byte(WARNING_SCRIPT)
-	err := ioutil.WriteFile(SCRIPT_DIR + "/gce-containers-welcome.sh", data, 0755)
-	if err != nil {
-		return err
+func WriteWelcomeScript(startupErr interface{}) error {
+	script := selectScriptBasedOnStartupResult(startupErr)
+	return saveScriptToFile(script, RealFileWriter{}, RealLogger{})
+}
+
+func selectScriptBasedOnStartupResult(startupErr interface{}) string {
+	if startupErr == nil {
+		return WELCOME_SCRIPT_ON_SUCCESS
+	} else {
+		return WELCOME_SCRIPT_ON_FAILURE
 	}
-	return nil
+}
+
+func saveScriptToFile(script string, fileWriter FileWriterInterface, logger LoggerInterface) error {
+	data := []byte(script)
+	writeErr := fileWriter.WriteFile(SCRIPT_PATH, data, 0755)
+	if writeErr != nil {
+		logger.Print("Failed to save welcome script to profile.d")
+		return writeErr
+	} else {
+		logger.Print("Saving welcome script to profile.d")
+		return nil
+	}
+}
+
+type FileWriterInterface interface {
+	WriteFile(filename string, data []byte, perm os.FileMode) error
+}
+
+type RealFileWriter struct{}
+
+func (_ RealFileWriter) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	return ioutil.WriteFile(filename, data, perm)
+}
+
+type LoggerInterface interface {
+	Print(v ...interface{})
+}
+
+type RealLogger struct{}
+
+func (_ RealLogger) Print(v ...interface{}) {
+	log.Print(v...)
 }
