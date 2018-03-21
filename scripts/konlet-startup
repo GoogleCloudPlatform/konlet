@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-readonly GET_METADATA_VALUE='/usr/bin/get_metadata_value'
+readonly GET_METADATA_VALUE='/usr/share/google/get_metadata_value'
 readonly KONLET_VERSION_TAG='v.alpha.0.7-latest'
 
 SPEC=$(${GET_METADATA_VALUE} 'attributes/gce-container-declaration')
