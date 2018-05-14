@@ -26,4 +26,5 @@ go_library(
     srcs = [
         "api.go",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types",
 )
