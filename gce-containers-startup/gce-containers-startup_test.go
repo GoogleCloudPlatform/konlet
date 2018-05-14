@@ -585,7 +585,6 @@ func TestExecStartup_env(t *testing.T) {
 func TestExecStartup_volumeMounts(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := NewMockCommandRunner(t)
-	mockCommandRunner.registerDirectoryForStat("/tmp")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -756,7 +755,6 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 func TestExecStartup_problem(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := NewMockCommandRunner(t)
-	mockCommandRunner.registerDirectoryForStat("/tmp")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
