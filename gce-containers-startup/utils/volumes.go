@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	api "github.com/konlet/types"
+	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
 )
 
 const (

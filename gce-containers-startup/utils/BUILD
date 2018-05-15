@@ -30,15 +30,16 @@ go_library(
         "welcome-message.go",
     ],
     deps = [
-        "//types:go_default_library",
-        "//vendor:github.com/docker/engine-api/client",
-        "//vendor:github.com/docker/engine-api/types",
-        "//vendor:github.com/docker/engine-api/types/container",
-        "//vendor:github.com/docker/engine-api/types/network",
-        "//vendor:github.com/docker/engine-api/types/strslice",
-        "//vendor:github.com/google/shlex",
-        "//vendor:golang.org/x/net/context",
+        "//gce-containers-startup/types:go_default_library",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/container",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/network",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/strslice",
+        "//gce-containers-startup/vendor:github.com/google/shlex",
+        "//gce-containers-startup/vendor:golang.org/x/net/context",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
 )
 
 go_test(

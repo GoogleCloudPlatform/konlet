@@ -17,11 +17,9 @@ Container startup agent is deployed as a Docker container and is hosted in
 Container Registry:
 [gcr.io/gce-containers/konlet](http://gcr.io/gce-containers/konlet).
 
-To build the agent using bazel run these commands from the repository root:
+To build the agent using bazel run this command from the repository root:
 ```shell
-$ pushd gce-containers-startup
-$ bazel build :gce-containers-startup
-$ popd
+$ bazel build gce-containers-startup
 ```
 
 Export your GCP project name to an environment variable:
@@ -32,7 +30,7 @@ $ export MY_PROJECT=your-project-name
 To build a Docker image, copy the build binary to the 'docker' directory and
 invoke the docker build command:
 ```shell
-$ cp gce-containers-startup/bazel-bin/gce-containers-startup docker/
+$ cp bazel-bin/gce-containers-startup/gce-containers-startup docker/
 $ docker build docker/ -t gcr.io/$MY_PROJECT/gce-containers-startup
 ```
 

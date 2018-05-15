@@ -19,14 +19,11 @@ licenses(["notice"])
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_binary",
-    "go_prefix",
     "go_library",
     "go_test",
 )
 load("@io_bazel_rules_docker//docker:docker.bzl", "docker_build")
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
-
-go_prefix("github.com/konlet")
 
 go_binary(
     name = "gce-containers-startup",
@@ -34,10 +31,11 @@ go_binary(
         "gce-containers-startup.go",
     ],
     deps = [
-        "//types:go_default_library",
-        "//utils:go_default_library",
-        "//vendor:gopkg.in/yaml.v2",
+        "//gce-containers-startup/types:go_default_library",
+        "//gce-containers-startup/utils:go_default_library",
+        "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )
 
 go_library(
@@ -46,10 +44,11 @@ go_library(
         "gce-containers-startup.go",
     ],
     deps = [
-        "//types:go_default_library",
-        "//utils:go_default_library",
-        "//vendor:gopkg.in/yaml.v2",
+        "//gce-containers-startup/types:go_default_library",
+        "//gce-containers-startup/utils:go_default_library",
+        "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )
 
 go_test(
@@ -58,14 +57,15 @@ go_test(
         "gce-containers-startup_test.go",
     ],
     deps = [
-        "//utils:go_default_library",
-        "//vendor:github.com/docker/engine-api/client",
-        "//vendor:github.com/docker/engine-api/types",
-        "//vendor:github.com/docker/engine-api/types/container",
-        "//vendor:github.com/docker/engine-api/types/network",
-        "//vendor:github.com/docker/engine-api/types/strslice",
-        "//vendor:golang.org/x/net/context",
-        "//vendor:gopkg.in/yaml.v2",
+        "//gce-containers-startup/utils:go_default_library",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/container",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/network",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/strslice",
+        "//gce-containers-startup/vendor:golang.org/x/net/context",
+        "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
     embed = [":go_default_library"],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )

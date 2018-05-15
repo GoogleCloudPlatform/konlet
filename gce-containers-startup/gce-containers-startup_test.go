@@ -27,7 +27,7 @@ import (
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
-	utils "github.com/konlet/utils"
+	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 
 	"golang.org/x/net/context"
 )

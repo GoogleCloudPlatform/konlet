@@ -20,8 +20,8 @@ import (
 	"log"
 	"os"
 
-	api "github.com/konlet/types"
-	utils "github.com/konlet/utils"
+	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
+	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 

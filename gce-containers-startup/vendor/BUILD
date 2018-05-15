@@ -25,6 +25,7 @@ go_library(
         "gopkg.in/yaml.v2/yamlh.go",
         "gopkg.in/yaml.v2/yamlprivateh.go",
     ],
+    importpath = "gopkg.in/yaml.v2",
 )
 
 go_library(
@@ -38,13 +39,14 @@ go_library(
         "github.com/docker/engine-api/types/types.go",
     ],
     deps = [
-        "//vendor:github.com/docker/engine-api/types/container",
-        "//vendor:github.com/docker/engine-api/types/filters",
-        "//vendor:github.com/docker/engine-api/types/network",
-        "//vendor:github.com/docker/engine-api/types/registry",
-        "//vendor:github.com/docker/go-connections/nat",
-        "//vendor:github.com/docker/go-units",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/container",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/filters",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/network",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/registry",
+        "//gce-containers-startup/vendor:github.com/docker/go-connections/nat",
+        "//gce-containers-startup/vendor:github.com/docker/go-units",
     ],
+    importpath = "github.com/docker/engine-api/types",
 )
 
 go_library(
@@ -55,21 +57,24 @@ go_library(
         "github.com/docker/engine-api/types/container/hostconfig_unix.go",
     ],
     deps = [
-        "//vendor:github.com/docker/engine-api/types/blkiodev",
-        "//vendor:github.com/docker/engine-api/types/strslice",
-        "//vendor:github.com/docker/go-connections/nat",
-        "//vendor:github.com/docker/go-units",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/blkiodev",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/strslice",
+        "//gce-containers-startup/vendor:github.com/docker/go-connections/nat",
+        "//gce-containers-startup/vendor:github.com/docker/go-units",
     ],
+    importpath = "github.com/docker/engine-api/types/container",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/blkiodev",
     srcs = ["github.com/docker/engine-api/types/blkiodev/blkio.go"],
+    importpath = "github.com/docker/engine-api/types/blkiodev",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/strslice",
     srcs = ["github.com/docker/engine-api/types/strslice/strslice.go"],
+    importpath = "github.com/docker/engine-api/types/strslice",
 )
 
 go_library(
@@ -79,6 +84,7 @@ go_library(
         "github.com/docker/go-connections/nat/parse.go",
         "github.com/docker/go-connections/nat/sort.go",
     ],
+    importpath = "github.com/docker/go-connections/nat",
 )
 
 go_library(
@@ -88,27 +94,32 @@ go_library(
         "github.com/docker/go-units/size.go",
         "github.com/docker/go-units/ulimit.go",
     ],
+    importpath = "github.com/docker/go-units",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/filters",
     srcs = ["github.com/docker/engine-api/types/filters/parse.go"],
-    deps = ["//vendor:github.com/docker/engine-api/types/versions"],
+    deps = ["//gce-containers-startup/vendor:github.com/docker/engine-api/types/versions"],
+    importpath = "github.com/docker/engine-api/types/filters",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/versions",
     srcs = ["github.com/docker/engine-api/types/versions/compare.go"],
+    importpath = "github.com/docker/engine-api/types/versions",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/network",
     srcs = ["github.com/docker/engine-api/types/network/network.go"],
+    importpath = "github.com/docker/engine-api/types/network",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/registry",
     srcs = ["github.com/docker/engine-api/types/registry/registry.go"],
+    importpath = "github.com/docker/engine-api/types/registry",
 )
 
 go_library(
@@ -172,20 +183,21 @@ go_library(
         "github.com/docker/engine-api/client/volume_remove.go",
     ],
     deps = [
-        "//vendor:github.com/docker/distribution/reference",
-        "//vendor:github.com/docker/engine-api/client/transport",
-        "//vendor:github.com/docker/engine-api/client/transport/cancellable",
-        "//vendor:github.com/docker/engine-api/types",
-        "//vendor:github.com/docker/engine-api/types/container",
-        "//vendor:github.com/docker/engine-api/types/filters",
-        "//vendor:github.com/docker/engine-api/types/network",
-        "//vendor:github.com/docker/engine-api/types/reference",
-        "//vendor:github.com/docker/engine-api/types/registry",
-        "//vendor:github.com/docker/engine-api/types/time",
-        "//vendor:github.com/docker/go-connections/sockets",
-        "//vendor:github.com/docker/go-connections/tlsconfig",
-        "//vendor:golang.org/x/net/context",
+        "//gce-containers-startup/vendor:github.com/docker/distribution/reference",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/client/transport",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/client/transport/cancellable",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/container",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/filters",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/network",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/reference",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/registry",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/time",
+        "//gce-containers-startup/vendor:github.com/docker/go-connections/sockets",
+        "//gce-containers-startup/vendor:github.com/docker/go-connections/tlsconfig",
+        "//gce-containers-startup/vendor:golang.org/x/net/context",
     ],
+    importpath = "github.com/docker/engine-api/client",
 )
 
 go_library(
@@ -194,7 +206,8 @@ go_library(
         "github.com/docker/distribution/reference/reference.go",
         "github.com/docker/distribution/reference/regexp.go",
     ],
-    deps = ["//vendor:github.com/docker/distribution/digest"],
+    deps = ["//gce-containers-startup/vendor:github.com/docker/distribution/digest"],
+    importpath = "github.com/docker/distribution/reference",
 )
 
 go_library(
@@ -206,6 +219,7 @@ go_library(
         "github.com/docker/distribution/digest/set.go",
         "github.com/docker/distribution/digest/verifiers.go",
     ],
+    importpath = "github.com/docker/distribution/digest",
 )
 
 go_library(
@@ -214,7 +228,8 @@ go_library(
         "github.com/docker/engine-api/client/transport/client.go",
         "github.com/docker/engine-api/client/transport/transport.go",
     ],
-    deps = ["//vendor:github.com/docker/go-connections/sockets"],
+    deps = ["//gce-containers-startup/vendor:github.com/docker/go-connections/sockets"],
+    importpath = "github.com/docker/engine-api/client/transport",
 )
 
 go_library(
@@ -228,10 +243,11 @@ go_library(
         "github.com/docker/go-connections/sockets/unix_socket.go",
     ],
     deps = [
-        "//vendor:github.com/Sirupsen/logrus",
-        "//vendor:github.com/opencontainers/runc/libcontainer/user",
-        "//vendor:golang.org/x/net/proxy",
+        "//gce-containers-startup/vendor:github.com/Sirupsen/logrus",
+        "//gce-containers-startup/vendor:github.com/opencontainers/runc/libcontainer/user",
+        "//gce-containers-startup/vendor:golang.org/x/net/proxy",
     ],
+    importpath = "github.com/docker/go-connections/sockets",
 )
 
 go_library(
@@ -248,6 +264,7 @@ go_library(
         "github.com/Sirupsen/logrus/terminal_notwindows.go",
         "github.com/Sirupsen/logrus/text_formatter.go",
     ],
+    importpath = "github.com/Sirupsen/logrus",
 )
 
 go_library(
@@ -257,6 +274,7 @@ go_library(
         "github.com/opencontainers/runc/libcontainer/user/lookup_unix.go",
         "github.com/opencontainers/runc/libcontainer/user/user.go",
     ],
+    importpath = "github.com/opencontainers/runc/libcontainer/user",
 )
 
 go_library(
@@ -267,6 +285,7 @@ go_library(
         "golang.org/x/net/proxy/proxy.go",
         "golang.org/x/net/proxy/socks5.go",
     ],
+    importpath = "golang.org/x/net/proxy",
 )
 
 go_library(
@@ -276,21 +295,24 @@ go_library(
         "github.com/docker/engine-api/client/transport/cancellable/cancellable.go",
     ],
     deps = [
-        "//vendor:github.com/docker/engine-api/client/transport",
-        "//vendor:golang.org/x/net/context",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/client/transport",
+        "//gce-containers-startup/vendor:golang.org/x/net/context",
     ],
+    importpath = "github.com/docker/engine-api/client/transport/cancellable",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/reference",
     srcs = ["github.com/docker/engine-api/types/reference/image_reference.go"],
     tags = ["automanaged"],
-    deps = ["//vendor:github.com/docker/distribution/reference"],
+    deps = ["//gce-containers-startup/vendor:github.com/docker/distribution/reference"],
+    importpath = "github.com/docker/engine-api/types/reference",
 )
 
 go_library(
     name = "github.com/docker/engine-api/types/time",
     srcs = ["github.com/docker/engine-api/types/time/timestamp.go"],
+    importpath = "github.com/docker/engine-api/types/time",
 )
 
 go_library(
@@ -299,7 +321,8 @@ go_library(
         "github.com/docker/go-connections/tlsconfig/config.go",
         "github.com/docker/go-connections/tlsconfig/config_client_ciphers.go",
     ],
-    deps = ["//vendor:github.com/Sirupsen/logrus"],
+    deps = ["//gce-containers-startup/vendor:github.com/Sirupsen/logrus"],
+    importpath = "github.com/docker/go-connections/tlsconfig",
 )
 
 go_library(
@@ -308,15 +331,18 @@ go_library(
         "golang.org/x/net/context/context.go",
         "golang.org/x/net/context/go17.go",
     ],
+    importpath = "golang.org/x/net/context",
 )
 
 go_library(
     name = "golang.org/x/net/context/ctxhttp",
     srcs = ["golang.org/x/net/context/ctxhttp/ctxhttp.go"],
-    deps = ["//vendor:golang.org/x/net/context"],
+    deps = ["//gce-containers-startup/vendor:golang.org/x/net/context"],
+    importpath = "golang.org/x/net/context/ctxhttp",
 )
 
 go_library(
     name = "github.com/google/shlex",
     srcs = ["github.com/google/shlex/shlex.go"],
+    importpath = "github.com/google/shlex",
 )
