@@ -182,10 +182,10 @@ func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume) (V
 }
 
 func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
-	if _, statError := env.OsCommandRunner.Stat(volume.Path); statError != nil {
-		return VolumeHostPathAndMode{}, fmt.Errorf("HostPath directory error: %s: %s", volume.Path, statError)
-	}
-	// TODO: Check file/directory permissions.
+	// No checks are done on this level. It is expected that underlying docker
+	// will report errors (if any), at the same time it will take care of
+	// creating missing directores etc. Note that it might still fail due to
+	// large parts of the COS system being read-only.
 	return VolumeHostPathAndMode{hostPath: volume.Path, readOnly: false}, nil
 }
 

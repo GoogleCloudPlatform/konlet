@@ -54,9 +54,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "gce-containers-startup.go",
         "gce-containers-startup_test.go",
-        "utils_test.go",
     ],
     deps = [
         "//gce-containers-startup/utils:go_default_library",

@@ -14,12 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-readonly GET_METADATA_VALUE='/usr/bin/get_metadata_value'
-SPEC=$(${GET_METADATA_VALUE} "attributes/gce-container-declaration")
+readonly GET_METADATA_VALUE='/usr/share/google/get_metadata_value'
+readonly KONLET_VERSION_TAG='v.alpha.0.7-latest'
 
+SPEC=$(${GET_METADATA_VALUE} 'attributes/gce-container-declaration')
 if [[ $? -ne 0 ]]; then
-  echo "No metadata present - not running containers"
+  echo 'No metadata present - not running containers'
   exit 0
+fi
+
+ACTUAL_KONLET_VERSION=$(${GET_METADATA_VALUE} 'attributes/gce-container-runner-version-override')
+if [[ $? -ne 0 ]]; then
+  ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
 fi
 
 docker run --rm --privileged \
@@ -30,5 +36,5 @@ docker run --rm --privileged \
   -v=/dev:/dev \
   -v=/mnt:/mnt \
   -v=/proc:/host_proc \
-  gcr.io/gce-containers/konlet:v.alpha.0.7-latest
+  "gcr.io/gce-containers/konlet:${ACTUAL_KONLET_VERSION}"
 
