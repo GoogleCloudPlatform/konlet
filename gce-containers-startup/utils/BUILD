@@ -48,4 +48,5 @@ go_test(
         "utils_test.go",
     ],
     embed = [":go_default_library"],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
 )
