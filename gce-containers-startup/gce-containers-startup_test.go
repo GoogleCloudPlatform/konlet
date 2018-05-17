@@ -329,6 +329,7 @@ const MOCK_AUTH_TOKEN = "123123123="
 const MOCK_CONTAINER_ID = "1234567"
 const MOCK_EXISTING_CONTAINER_ID = "123123123"
 
+// TODO(pderkowski): move this struct to utils so that it can be used in unit tests for volumes.
 type TestMetadataProvider struct {
 	Manifest         string
 	DiskMetadataJson string
@@ -395,6 +396,7 @@ func (f minimalFileInfo) Sys() interface{} {
 	return nil
 }
 
+// TODO(pderkowski): move this struct to utils so that it can be used in unit tests for volumes.
 func NewMockCommandRunner(t *testing.T) *MockCommandRunner {
 	return &MockCommandRunner{commands: map[string]*MockCommand{}, statFiles: map[string]os.FileInfo{}, expectedMkdirAlls: map[string]bool{}, t: t}
 }

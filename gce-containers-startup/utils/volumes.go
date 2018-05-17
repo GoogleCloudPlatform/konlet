@@ -67,6 +67,7 @@ type VolumeBindingConfiguration struct {
 //  - Outputs all the binding maps, keyed by container name.
 //
 // The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
+// TODO(pderkowski): write unit tests for this function.
 func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
