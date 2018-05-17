@@ -1,8 +1,8 @@
 steps:
 - name: 'gcr.io/cloud-builders/bazel'
   args: ['build', 'gce-containers-startup']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '-P', 'bazel-bin/gce-containers-startup/gce-containers-startup', 'docker/gce-containers-startup']
+- name: 'gcr.io/google-containers/busybox'
+  args: ['cp', 'bazel-bin/gce-containers-startup/gce-containers-startup', 'docker/gce-containers-startup']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/gce-containers/konlet:HEAD', 'docker']
 images: ['gcr.io/gce-containers/konlet:HEAD']
