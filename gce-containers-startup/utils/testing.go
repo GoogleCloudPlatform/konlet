@@ -15,34 +15,46 @@
 package utils
 
 import (
-  "fmt"
-  "reflect"
-  "testing"
+	"fmt"
+	"reflect"
+	"testing"
 )
 
 func AssertEqual(t *testing.T, a interface{}, b interface{}, message string) {
-  if reflect.DeepEqual(a, b) {
-    return
-  }
-  if len(message) == 0 {
-    message = fmt.Sprintf("'%v' != '%v'", a, b)
-  }
-  t.Fatal(message)
+	if reflect.DeepEqual(a, b) {
+		return
+	}
+	if len(message) == 0 {
+		message = fmt.Sprintf("'%#v' != '%#v'", a, b)
+	}
+	t.Fatal(message)
 }
 
 func AssertNoError(t *testing.T, err error) {
-  if err != nil {
-    message := fmt.Sprintf("%v", err)
-    t.Fatalf("Unexpected error '%s'", message)
-  }
+	if err != nil {
+		message := fmt.Sprintf("%v", err)
+		t.Fatalf("Unexpected error '%s'", message)
+	}
 }
 
 func AssertError(t *testing.T, err error, expected string) {
-  if err == nil {
-    t.Fatal("Exected error not to be null")
-  }
-  message := fmt.Sprintf("%v", err)
-  if message != expected {
-    t.Fatalf("Exected error to be '%s', but it was '%s'", expected, message)
-  }
+	if err == nil {
+		t.Fatal("Exected error not to be null")
+	}
+	message := fmt.Sprintf("%v", err)
+	if message != expected {
+		t.Fatalf("Exected error to be '%s', but it was '%s'", expected, message)
+	}
+}
+
+func AssertEmpty(t *testing.T, object interface{}, message string) {
+	value := reflect.ValueOf(object)
+	switch kind := value.Kind(); kind {
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+		if length := value.Len(); length != 0 {
+			t.Fatalf("Expected an empty object, got a %s of length %d", kind.String(), length)
+		}
+	default:
+		t.Fatalf("Expected a container-like object, got %s", kind.String())
+	}
 }
