@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
+	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
 	dockerstrslice "github.com/docker/engine-api/types/strslice"
-	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 
 	"golang.org/x/net/context"
 )
@@ -808,7 +808,7 @@ func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -838,7 +838,7 @@ func TestExecStartup_pdValidAndFormatted_mountReadOnly(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -866,7 +866,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -930,7 +930,7 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -985,7 +985,7 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, map[string]string{}, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
