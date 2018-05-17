@@ -203,21 +203,12 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 	}
 	// Docker-API compatible types.
 	hostPathBinds := []string{}
-	tmpFsBinds := map[string]string{}
-	// Hack to workaround the issue with double mount point for tmpFs.
-	tmpFsBindsAsVolumes := map[string]struct{}{}
 	for _, hostPathBindConfiguration := range volumeBindingConfiguration.hostPathBinds {
 		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.hostPath, hostPathBindConfiguration.containerPath)
 		if hostPathBindConfiguration.readOnly {
 			hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
 		}
 		hostPathBinds = append(hostPathBinds, hostPathBind)
-	}
-	for _, tmpFsBindConfiguration := range volumeBindingConfiguration.tmpFsBinds {
-		tmpFsBinds[tmpFsBindConfiguration.path] = ""
-		if tmpFsBindConfiguration.path == "/dev/shm" {
-			tmpFsBindsAsVolumes[tmpFsBindConfiguration.path] = struct{}{}
-		}
 	}
 
 	env := []string{}
@@ -253,11 +244,9 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 			Env:        env,
 			OpenStdin:  container.StdIn,
 			Tty:        container.Tty,
-			Volumes:    tmpFsBindsAsVolumes,
 		},
 		HostConfig: &dockercontainer.HostConfig{
 			Binds:       hostPathBinds,
-			Tmpfs:       tmpFsBinds,
 			AutoRemove:  autoRemove,
 			NetworkMode: "host",
 			Privileged:  container.SecurityContext.Privileged,

@@ -281,6 +281,8 @@ spec:
   - name: 'test-simple'
     image: 'gcr.io/gce-containers/apache:v1'`
 
+const TMPFS_HOST_MOUNT_PATH_PREFIX = "/mnt/disks/gce-containers-mounts/tmpfss/"
+
 const SINGLE_DISK_METADATA = `
 [
 	{
@@ -583,8 +585,11 @@ func TestExecStartup_env(t *testing.T) {
 }
 
 func TestExecStartup_volumeMounts(t *testing.T) {
+	const EMPTYDIR_HOST_MOUNT_PATH = TMPFS_HOST_MOUNT_PATH_PREFIX + "vol2"
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := NewMockCommandRunner(t)
+	mockCommandRunner.registerMkdirAll(EMPTYDIR_HOST_MOUNT_PATH)
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t tmpfs tmpfs "+EMPTYDIR_HOST_MOUNT_PATH, "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -592,13 +597,14 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	tmpFsBinds := map[string]string{}
-	tmpFsBinds["/tmp/host-2"] = ""
 	utils.AssertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
-	utils.AssertEqual(t, []string{"/tmp:/tmp/host-1:ro", "/tmp:/tmp/host-3", "/tmp:/tmp/host-4"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t,
+		[]string{"/tmp:/tmp/host-1:ro", EMPTYDIR_HOST_MOUNT_PATH + ":/tmp/host-2", "/tmp:/tmp/host-3", "/tmp:/tmp/host-4"},
+		mockDockerClient.HostConfig.Binds,
+		"")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
@@ -753,8 +759,11 @@ func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 }
 
 func TestExecStartup_problem(t *testing.T) {
+	const EMPTYDIR_HOST_MOUNT_PATH = TMPFS_HOST_MOUNT_PATH_PREFIX + "emptydir-1"
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := NewMockCommandRunner(t)
+	mockCommandRunner.registerMkdirAll(EMPTYDIR_HOST_MOUNT_PATH)
+	mockCommandRunner.outputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t tmpfs tmpfs "+EMPTYDIR_HOST_MOUNT_PATH, "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -762,10 +771,11 @@ func TestExecStartup_problem(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	tmpFsBinds := map[string]string{}
-	tmpFsBinds["/tmp-tmpfs"] = ""
-	utils.AssertEqual(t, []string{"/tmp:/tmp-host"}, mockDockerClient.HostConfig.Binds, "")
-	utils.AssertEqual(t, tmpFsBinds, mockDockerClient.HostConfig.Tmpfs, "")
+	utils.AssertEqual(t,
+		[]string{"/tmp:/tmp-host", EMPTYDIR_HOST_MOUNT_PATH + ":/tmp-tmpfs"},
+		mockDockerClient.HostConfig.Binds,
+		"")
+	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 }
 
 func TestExecStartup_ignorePodFields(t *testing.T) {

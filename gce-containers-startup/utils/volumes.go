@@ -46,22 +46,17 @@ type VolumeHostPathAndMode struct {
 	readOnly bool
 }
 
-type TmpFsConfiguration struct {
-	path     string
-	readOnly bool
-}
-
 type HostPathBindConfiguration struct {
 	hostPath      string
 	containerPath string
 	readOnly      bool
 }
 
-// Structure represents data that is passed to docker - host binding paths, tmpfs paths and volumes.
+// VolumeBindingConfiguration represents data about volume binfs that is passed
+// to docker. Currently only host binding paths are used, since tmpfs are
+// created on host and bound to containers using the host path mechanism.
 type VolumeBindingConfiguration struct {
-	// Maps from container name to relevant bindings.
 	hostPathBinds []HostPathBindConfiguration
-	tmpFsBinds    []TmpFsConfiguration
 }
 
 // This is the main interface to this module.
@@ -107,7 +102,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 
 	containerBindingConfigurationMap := map[string]VolumeBindingConfiguration{}
 	for _, container := range spec.Containers {
-		containerBindingConfiguration := VolumeBindingConfiguration{nil, nil}
+		containerBindingConfiguration := VolumeBindingConfiguration{}
 		for _, volumeMount := range container.VolumeMounts {
 			// It has already been checked that the volume is present.
 			volumeHostPathAndMode, _ := volumeNameToHostPathMap[volumeMount.Name]
@@ -115,11 +110,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 			if volumeHostPathAndMode.readOnly && !volumeMount.ReadOnly {
 				return nil, fmt.Errorf("Container %s: volumeMount %s specifies read-write access, but underlying volume is read-only.", container.Name, volumeMount.Name)
 			}
-			if volumeHostPathAndMode.hostPath == "" {
-				containerBindingConfiguration.tmpFsBinds = append(containerBindingConfiguration.tmpFsBinds, TmpFsConfiguration{path: volumeMount.MountPath, readOnly: volumeMount.ReadOnly})
-			} else {
-				containerBindingConfiguration.hostPathBinds = append(containerBindingConfiguration.hostPathBinds, HostPathBindConfiguration{hostPath: volumeHostPathAndMode.hostPath, containerPath: volumeMount.MountPath, readOnly: volumeMount.ReadOnly})
-			}
+			containerBindingConfiguration.hostPathBinds = append(containerBindingConfiguration.hostPathBinds, HostPathBindConfiguration{hostPath: volumeHostPathAndMode.hostPath, containerPath: volumeMount.MountPath, readOnly: volumeMount.ReadOnly})
 		}
 		containerBindingConfigurationMap[container.Name] = containerBindingConfiguration
 	}
@@ -151,7 +142,7 @@ func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume
 		}
 		if apiVolume.EmptyDir != nil {
 			definitions++
-			volumeHostPathAndMode, processError = env.processEmptyDirVolume(apiVolume.EmptyDir)
+			volumeHostPathAndMode, processError = env.processEmptyDirVolume(apiVolume.EmptyDir, apiVolume.Name)
 		}
 		if apiVolume.GcePersistentDisk != nil {
 			definitions++
@@ -170,15 +161,22 @@ func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume
 	return volumeNameToHostPathMap, nil
 }
 
-func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume) (VolumeHostPathAndMode, error) {
+func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
 	if volume.Medium != "Memory" {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported emptyDir volume medium: %s", volume.Medium)
 	}
-	// TODO: For the purpose of preserving data between config updates and
-	// sharing data between multiple containers (if supported), actually
-	// create and mount the tmpfs here, thus dropping the empty string
-	// special case.
-	return VolumeHostPathAndMode{hostPath: "", readOnly: false}, nil
+	return env.processMemoryBackedEmptyDirVolume(volume, volumeName)
+}
+
+func (env VolumesModuleEnv) processMemoryBackedEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
+	tmpfsMountPoint, err := env.createNewMountPath("tmpfs", volumeName)
+	if err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+	if err := env.mountDevice("tmpfs", tmpfsMountPoint, "tmpfs", false); err != nil {
+		return VolumeHostPathAndMode{}, err
+	}
+	return VolumeHostPathAndMode{hostPath: tmpfsMountPoint, readOnly: false}, nil
 }
 
 func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
