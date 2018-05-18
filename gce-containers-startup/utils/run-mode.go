@@ -67,14 +67,14 @@ type ContainerRunner struct {
 	VolumesEnv *VolumesModuleEnv
 }
 
-func GetDefaultRunner(metadataProvider MetadataProvider) (*ContainerRunner, error) {
+func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider MetadataProvider) (*ContainerRunner, error) {
 	var dockerClient DockerApiClient
 	var err error
 	dockerClient, err = dockerapi.NewClient(DOCKER_UNIX_SOCKET, "", nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient, VolumesEnv: &VolumesModuleEnv{OsCommandRunner: RealOsCommandRunner{}, MetadataProvider: metadataProvider}}, nil
+	return &ContainerRunner{Client: dockerClient, VolumesEnv: &VolumesModuleEnv{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {

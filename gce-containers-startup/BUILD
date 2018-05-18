@@ -32,6 +32,7 @@ go_binary(
     ],
     importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
     deps = [
+        "//gce-containers-startup/command",
         "//gce-containers-startup/metadata",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
@@ -46,6 +47,7 @@ go_library(
     ],
     importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
     deps = [
+        "//gce-containers-startup/command",
         "//gce-containers-startup/metadata",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",

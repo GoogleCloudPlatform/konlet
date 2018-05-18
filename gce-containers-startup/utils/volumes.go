@@ -36,13 +36,19 @@ var (
 
 // Environment struct for dependency injection.
 type VolumesModuleEnv struct {
-	OsCommandRunner  OsCommandRunnerInterface
+	OsCommandRunner  OsCommandRunner
 	MetadataProvider MetadataProvider
 }
 
 type MetadataProvider interface {
 	RetrieveManifest() ([]byte, error)
 	RetrieveDisksMetadataAsJson() ([]byte, error)
+}
+
+type OsCommandRunner interface {
+	Run(...string) (string, error)
+	MkdirAll(path string, perm os.FileMode) error
+	Stat(name string) (os.FileInfo, error)
 }
 
 type VolumeHostPathAndMode struct {

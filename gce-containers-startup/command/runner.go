@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package command
 
 import (
 	"fmt"
@@ -20,19 +20,13 @@ import (
 	"os/exec"
 )
 
-type OsCommandRunnerInterface interface {
-	Run(...string) (string, error)
-	MkdirAll(path string, perm os.FileMode) error
-	Stat(name string) (os.FileInfo, error)
-}
-
-type RealOsCommandRunner struct{}
+type Runner struct{}
 
 // Wrap around os.exec.Command(...).CombinedOutput() to glue together output
 // (STDERR+STDOUT) and execution error message upon failure.
 //
 // Convert the []byte output to string as well.
-func (r RealOsCommandRunner) Run(commandAndArgs ...string) (string, error) {
+func (r Runner) Run(commandAndArgs ...string) (string, error) {
 	if len(commandAndArgs) == 0 {
 		return "", fmt.Errorf("No command provided.")
 	}
@@ -48,10 +42,10 @@ func (r RealOsCommandRunner) Run(commandAndArgs ...string) (string, error) {
 	return outputString, nil
 }
 
-func (r RealOsCommandRunner) MkdirAll(path string, perm os.FileMode) error {
+func (r Runner) MkdirAll(path string, perm os.FileMode) error {
 	return os.MkdirAll(path, perm)
 }
 
-func (r RealOsCommandRunner) Stat(name string) (os.FileInfo, error) {
+func (r Runner) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
 }

@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 
@@ -51,7 +52,7 @@ func main() {
 		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag}
 	}
 
-	runner, err := utils.GetDefaultRunner(metadataProvider)
+	runner, err := utils.GetDefaultRunner(command.Runner{}, metadataProvider)
 	if err != nil {
 		log.Panicf("Failed to initialize Konlet: %v", err)
 	}
