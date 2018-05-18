@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"unicode"
 
@@ -36,6 +37,7 @@ import (
 	"io"
 
 	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes"
 )
 
 const DOCKER_UNIX_SOCKET = "unix:///var/run/docker.sock"
@@ -58,13 +60,24 @@ type DockerApiClient interface {
 	ContainerRemove(ctx context.Context, containerID string, opts dockertypes.ContainerRemoveOptions) error
 }
 
+type MetadataProvider interface {
+	RetrieveManifest() ([]byte, error)
+	RetrieveDisksMetadataAsJson() ([]byte, error)
+}
+
+type OsCommandRunner interface {
+	Run(...string) (string, error)
+	MkdirAll(path string, perm os.FileMode) error
+	Stat(name string) (os.FileInfo, error)
+}
+
 func (e operationTimeout) Error() string {
 	return fmt.Sprintf("%s operation timeout: %v", e.operationType, e.err)
 }
 
 type ContainerRunner struct {
 	Client     DockerApiClient
-	VolumesEnv *VolumesModuleEnv
+	VolumesEnv *volumes.Env
 }
 
 func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider MetadataProvider) (*ContainerRunner, error) {
@@ -74,7 +87,7 @@ func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider Metadata
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient, VolumesEnv: &VolumesModuleEnv{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
+	return &ContainerRunner{Client: dockerClient, VolumesEnv: &volumes.Env{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
@@ -173,7 +186,7 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
 }
 
-func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv, spec api.ContainerSpecStruct) (string, error) {
+func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec api.ContainerSpecStruct) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -203,9 +216,9 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 	}
 	// Docker-API compatible types.
 	hostPathBinds := []string{}
-	for _, hostPathBindConfiguration := range volumeBindingConfiguration.hostPathBinds {
-		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.hostPath, hostPathBindConfiguration.containerPath)
-		if hostPathBindConfiguration.readOnly {
+	for _, hostPathBindConfiguration := range volumeBindingConfiguration.HostPathBinds {
+		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.HostPath, hostPathBindConfiguration.ContainerPath)
+		if hostPathBindConfiguration.ReadOnly {
 			hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
 		}
 		hostPathBinds = append(hostPathBinds, hostPathBind)

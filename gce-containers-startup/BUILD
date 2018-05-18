@@ -37,6 +37,7 @@ go_binary(
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
+        "//gce-containers-startup/volumes",
     ],
 )
 
@@ -52,6 +53,7 @@ go_library(
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
+        "//gce-containers-startup/volumes",
     ],
 )
 

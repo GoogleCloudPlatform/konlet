@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes"
 
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
@@ -369,7 +370,7 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 
 func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunner *command.MockRunner, manifest string, diskMetadata string) error {
 	metadataProviderStub := metadata.ProviderStub{Manifest: manifest, DiskMetadataJson: diskMetadata}
-	volumesEnv := &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner, MetadataProvider: metadataProviderStub}
+	volumesEnv := &volumes.Env{OsCommandRunner: mockCommandRunner, MetadataProvider: metadataProviderStub}
 	return ExecStartup(
 		metadataProviderStub,
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},

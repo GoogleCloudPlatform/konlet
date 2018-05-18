@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package volumes
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ var (
 )
 
 // Environment struct for dependency injection.
-type VolumesModuleEnv struct {
+type Env struct {
 	OsCommandRunner  OsCommandRunner
 	MetadataProvider MetadataProvider
 }
@@ -58,16 +58,16 @@ type VolumeHostPathAndMode struct {
 }
 
 type HostPathBindConfiguration struct {
-	hostPath      string
-	containerPath string
-	readOnly      bool
+	HostPath      string
+	ContainerPath string
+	ReadOnly      bool
 }
 
-// VolumeBindingConfiguration represents data about volume binfs that is passed
+// VolumeBindingConfiguration represents data about volume binds that is passed
 // to docker. Currently only host binding paths are used, since tmpfs are
 // created on host and bound to containers using the host path mechanism.
 type VolumeBindingConfiguration struct {
-	hostPathBinds []HostPathBindConfiguration
+	HostPathBinds []HostPathBindConfiguration
 }
 
 // This is the main interface to this module.
@@ -79,7 +79,7 @@ type VolumeBindingConfiguration struct {
 //
 // The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
 // TODO(pderkowski): write unit tests for this function.
-func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
+func (env Env) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
@@ -122,7 +122,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 			if volumeHostPathAndMode.readOnly && !volumeMount.ReadOnly {
 				return nil, fmt.Errorf("Container %s: volumeMount %s specifies read-write access, but underlying volume is read-only.", container.Name, volumeMount.Name)
 			}
-			containerBindingConfiguration.hostPathBinds = append(containerBindingConfiguration.hostPathBinds, HostPathBindConfiguration{hostPath: volumeHostPathAndMode.hostPath, containerPath: volumeMount.MountPath, readOnly: volumeMount.ReadOnly})
+			containerBindingConfiguration.HostPathBinds = append(containerBindingConfiguration.HostPathBinds, HostPathBindConfiguration{HostPath: volumeHostPathAndMode.hostPath, ContainerPath: volumeMount.MountPath, ReadOnly: volumeMount.ReadOnly})
 		}
 		containerBindingConfigurationMap[container.Name] = containerBindingConfiguration
 	}
@@ -130,7 +130,7 @@ func (env VolumesModuleEnv) PrepareVolumesAndGetBindings(spec api.ContainerSpecS
 	return containerBindingConfigurationMap, nil
 }
 
-func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume, volumeMountWantsReadWriteMap map[string]bool) (map[string]VolumeHostPathAndMode, error) {
+func (env Env) buildVolumeNameToHostPathMap(apiVolumes []api.Volume, volumeMountWantsReadWriteMap map[string]bool) (map[string]VolumeHostPathAndMode, error) {
 	// For each volume, use the proper handler function to build the volume name -> hostpath+mode map.
 	volumeNameToHostPathMap := map[string]VolumeHostPathAndMode{}
 
@@ -173,14 +173,14 @@ func (env VolumesModuleEnv) buildVolumeNameToHostPathMap(apiVolumes []api.Volume
 	return volumeNameToHostPathMap, nil
 }
 
-func (env VolumesModuleEnv) processEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
+func (env Env) processEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
 	if volume.Medium != "Memory" {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported emptyDir volume medium: %s", volume.Medium)
 	}
 	return env.processMemoryBackedEmptyDirVolume(volume, volumeName)
 }
 
-func (env VolumesModuleEnv) processMemoryBackedEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
+func (env Env) processMemoryBackedEmptyDirVolume(volume *api.EmptyDirVolume, volumeName string) (VolumeHostPathAndMode, error) {
 	tmpfsMountPoint, err := env.createNewMountPath("tmpfs", volumeName)
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
@@ -191,7 +191,7 @@ func (env VolumesModuleEnv) processMemoryBackedEmptyDirVolume(volume *api.EmptyD
 	return VolumeHostPathAndMode{hostPath: tmpfsMountPoint, readOnly: false}, nil
 }
 
-func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
+func (env Env) processHostPathVolume(volume *api.HostPathVolume) (VolumeHostPathAndMode, error) {
 	// No checks are done on this level. It is expected that underlying docker
 	// will report errors (if any), at the same time it will take care of
 	// creating missing directores etc. Note that it might still fail due to
@@ -199,7 +199,7 @@ func (env VolumesModuleEnv) processHostPathVolume(volume *api.HostPathVolume) (V
 	return VolumeHostPathAndMode{hostPath: volume.Path, readOnly: false}, nil
 }
 
-func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume, volumeMountWantsReadWrite bool, diskMetadataReadOnlyMap map[string]bool) (VolumeHostPathAndMode, error) {
+func (env Env) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolume, volumeMountWantsReadWrite bool, diskMetadataReadOnlyMap map[string]bool) (VolumeHostPathAndMode, error) {
 	if volume.FsType != "" && volume.FsType != ext4FsType {
 		return VolumeHostPathAndMode{}, fmt.Errorf("Unsupported filesystem type: %s", volume.FsType)
 	}
@@ -247,7 +247,7 @@ func (env VolumesModuleEnv) processGcePersistentDiskVolume(volume *api.GcePersis
 	return VolumeHostPathAndMode{deviceMountPoint, mountReadOnly}, nil
 }
 
-func (env VolumesModuleEnv) buildDiskMetadataReadOnlyMap() (map[string]bool, error) {
+func (env Env) buildDiskMetadataReadOnlyMap() (map[string]bool, error) {
 	diskMetadataReadOnlyMap := map[string]bool{}
 
 	diskMetadataJson, err := env.MetadataProvider.RetrieveDisksMetadataAsJson()
@@ -289,7 +289,7 @@ func resolveGcePersistentDiskDevicePath(pdName string) (string, error) {
 // Generate a name for the new volume mount, based on the volume family (type)
 // and volume name.  Create the directory if necessary, return a path to a
 // valid directory to mount the volume in, error otherwise.
-func (env VolumesModuleEnv) createNewMountPath(volumeFamily string, volumeName string) (string, error) {
+func (env Env) createNewMountPath(volumeFamily string, volumeName string) (string, error) {
 	path := fmt.Sprintf("%s/%ss/%s", *mountedVolumesPathPrefixFlag, volumeFamily, volumeName)
 	log.Printf("Creating directory %s as a mount point for volume %s.", path, volumeName)
 	if err := env.OsCommandRunner.MkdirAll(path, 0755); err != nil {
@@ -312,7 +312,7 @@ func wrapToEnterHostMountNamespace(origCommandline ...string) []string {
 
 // Attempt to mount the device under a generated path. Assumes the device
 // contains an clean filesystem.
-func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
+func (env Env) mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
 	log.Printf("Attempting to mount device %s at %s.", devicePath, mountPath)
 
 	var mountOpts []string
@@ -334,7 +334,7 @@ func (env VolumesModuleEnv) mountDevice(devicePath string, mountPath string, fsT
 	}
 }
 
-func (env VolumesModuleEnv) checkDeviceReadable(devicePath string) error {
+func (env Env) checkDeviceReadable(devicePath string) error {
 	fileInfo, err := env.OsCommandRunner.Stat(devicePath)
 	if err != nil {
 		return fmt.Errorf("Device %s access error: %s", devicePath, err)
@@ -346,7 +346,7 @@ func (env VolumesModuleEnv) checkDeviceReadable(devicePath string) error {
 	return nil
 }
 
-func (env VolumesModuleEnv) checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string) error {
+func (env Env) checkFilesystemAndFormatIfNeeded(devicePath string, configuredFsType string) error {
 	// Should be const, but Go can't into map consts.
 	filesystemCheckerMap := map[string][]string{
 		ext4FsType: []string{"fsck.ext4", "-p"},
@@ -400,7 +400,7 @@ func (env VolumesModuleEnv) checkFilesystemAndFormatIfNeeded(devicePath string, 
 }
 
 // Return non-nil error with meaningful message when the device is already mounted.
-func (env VolumesModuleEnv) checkDeviceNotMounted(devicePath string) error {
+func (env Env) checkDeviceNotMounted(devicePath string) error {
 	const lsblkMountPoint string = "MOUNTPOINT"
 	if mountPoint, err := env.getSinglePropertyFromDeviceWithLsblk(devicePath, lsblkMountPoint); err != nil {
 		return err
@@ -417,7 +417,7 @@ func (env VolumesModuleEnv) checkDeviceNotMounted(devicePath string) error {
 //
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
-func (env VolumesModuleEnv) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
+func (env Env) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
 	output, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk", "-n", "-o", property, devicePath)...)
 	if err != nil {
 		return "", err
