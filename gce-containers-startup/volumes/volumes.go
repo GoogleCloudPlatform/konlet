@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
 	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
 )
 
@@ -37,12 +38,7 @@ var (
 // Environment struct for dependency injection.
 type Env struct {
 	OsCommandRunner  OsCommandRunner
-	MetadataProvider MetadataProvider
-}
-
-type MetadataProvider interface {
-	RetrieveManifest() ([]byte, error)
-	RetrieveDisksMetadataAsJson() ([]byte, error)
+	MetadataProvider metadata.Provider
 }
 
 type OsCommandRunner interface {

@@ -36,6 +36,7 @@ import (
 
 	"io"
 
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
 	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes"
 )
@@ -60,11 +61,6 @@ type DockerApiClient interface {
 	ContainerRemove(ctx context.Context, containerID string, opts dockertypes.ContainerRemoveOptions) error
 }
 
-type MetadataProvider interface {
-	RetrieveManifest() ([]byte, error)
-	RetrieveDisksMetadataAsJson() ([]byte, error)
-}
-
 type OsCommandRunner interface {
 	Run(...string) (string, error)
 	MkdirAll(path string, perm os.FileMode) error
@@ -80,7 +76,7 @@ type ContainerRunner struct {
 	VolumesEnv *volumes.Env
 }
 
-func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider MetadataProvider) (*ContainerRunner, error) {
+func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider metadata.Provider) (*ContainerRunner, error) {
 	var dockerClient DockerApiClient
 	var err error
 	dockerClient, err = dockerapi.NewClient(DOCKER_UNIX_SOCKET, "", nil, nil)

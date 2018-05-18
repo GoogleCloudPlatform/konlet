@@ -26,6 +26,11 @@ const (
 	DISKS_METADATA_WITH_RECURSION  = "instance/disks/?recursive=true"
 )
 
+type Provider interface {
+	RetrieveManifest() ([]byte, error)
+	RetrieveDisksMetadataAsJson() ([]byte, error)
+}
+
 type DefaultProvider struct {
 }
 

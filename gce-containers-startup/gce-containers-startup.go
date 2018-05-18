@@ -62,7 +62,7 @@ func main() {
 	}
 }
 
-func ExecStartup(metadataProvider utils.MetadataProvider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
+func ExecStartup(metadataProvider metadata.Provider, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
 	body, err := metadataProvider.RetrieveManifest()
 	if err != nil {
 		return fmt.Errorf("Cannot load container declaration: %v", err)

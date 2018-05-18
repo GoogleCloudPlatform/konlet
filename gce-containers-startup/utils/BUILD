@@ -28,6 +28,7 @@ go_library(
     ],
     importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
     deps = [
+        "//gce-containers-startup/metadata",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
         "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
