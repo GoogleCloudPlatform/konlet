@@ -20,6 +20,7 @@ go_library(
     name = "metadata",
     srcs = [
         "provider.go",
+        "provider_stub.go",
     ],
     importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata",
 )

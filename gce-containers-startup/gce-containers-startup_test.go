@@ -23,7 +23,9 @@ import (
 	"testing"
 	"time"
 
-	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
+
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
 	dockernetwork "github.com/docker/engine-api/types/network"
@@ -329,20 +331,6 @@ const MOCK_AUTH_TOKEN = "123123123="
 const MOCK_CONTAINER_ID = "1234567"
 const MOCK_EXISTING_CONTAINER_ID = "123123123"
 
-// TODO(pderkowski): move this struct to utils so that it can be used in unit tests for volumes.
-type TestMetadataProvider struct {
-	Manifest         string
-	DiskMetadataJson string
-}
-
-func (provider TestMetadataProvider) RetrieveManifest() ([]byte, error) {
-	return []byte(provider.Manifest), nil
-}
-
-func (provider TestMetadataProvider) RetrieveDisksMetadataAsJson() ([]byte, error) {
-	return []byte(provider.DiskMetadataJson), nil
-}
-
 type MockDockerApi struct {
 	PulledImage      string
 	ContainerName    string
@@ -496,10 +484,10 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 }
 
 func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunner *MockCommandRunner, manifest string, diskMetadata string) error {
-	fakeMetadataProvider := TestMetadataProvider{Manifest: manifest, DiskMetadataJson: diskMetadata}
-	volumesEnv := &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner, MetadataProvider: fakeMetadataProvider}
+	metadataProviderStub := metadata.ProviderStub{Manifest: manifest, DiskMetadataJson: diskMetadata}
+	volumesEnv := &utils.VolumesModuleEnv{OsCommandRunner: mockCommandRunner, MetadataProvider: metadataProviderStub}
 	return ExecStartup(
-		fakeMetadataProvider,
+		metadataProviderStub,
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
 		&utils.ContainerRunner{Client: mockDockerApi, VolumesEnv: volumesEnv},
 		false, /* openIptables */
