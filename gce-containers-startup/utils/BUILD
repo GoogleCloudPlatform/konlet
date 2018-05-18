@@ -22,23 +22,10 @@ go_library(
         "auth.go",
         "iptables.go",
         "registry.go",
-        "run-mode.go",
         "testing.go",
         "welcome-message.go",
     ],
     importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
-    deps = [
-        "//gce-containers-startup/metadata",
-        "//gce-containers-startup/types:go_default_library",
-        "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
-        "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
-        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/container",
-        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/network",
-        "//gce-containers-startup/vendor:github.com/docker/engine-api/types/strslice",
-        "//gce-containers-startup/vendor:github.com/google/shlex",
-        "//gce-containers-startup/vendor:golang.org/x/net/context",
-        "//gce-containers-startup/volumes",
-    ],
 )
 
 go_test(

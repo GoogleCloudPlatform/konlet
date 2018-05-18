@@ -34,6 +34,7 @@ go_binary(
     deps = [
         "//gce-containers-startup/command",
         "//gce-containers-startup/metadata",
+        "//gce-containers-startup/runtime",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
@@ -50,6 +51,7 @@ go_library(
     deps = [
         "//gce-containers-startup/command",
         "//gce-containers-startup/metadata",
+        "//gce-containers-startup/runtime",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",

@@ -23,6 +23,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/runtime"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes"
 
@@ -374,7 +375,7 @@ func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunne
 	return ExecStartup(
 		metadataProviderStub,
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&utils.ContainerRunner{Client: mockDockerApi, VolumesEnv: volumesEnv},
+		&runtime.ContainerRunner{Client: mockDockerApi, VolumesEnv: volumesEnv},
 		false, /* openIptables */
 	)
 }
