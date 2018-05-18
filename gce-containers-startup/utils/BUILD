@@ -21,7 +21,6 @@ go_library(
     srcs = [
         "auth.go",
         "iptables.go",
-        "metadata-provider.go",
         "os-command.go",
         "registry.go",
         "run-mode.go",
@@ -29,6 +28,7 @@ go_library(
         "volumes.go",
         "welcome-message.go",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
     deps = [
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
@@ -39,7 +39,6 @@ go_library(
         "//gce-containers-startup/vendor:github.com/google/shlex",
         "//gce-containers-startup/vendor:golang.org/x/net/context",
     ],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
 )
 
 go_test(

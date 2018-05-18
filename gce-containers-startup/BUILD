@@ -30,12 +30,13 @@ go_binary(
     srcs = [
         "gce-containers-startup.go",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
     deps = [
+        "//gce-containers-startup/metadata",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )
 
 go_library(
@@ -43,12 +44,13 @@ go_library(
     srcs = [
         "gce-containers-startup.go",
     ],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
     deps = [
+        "//gce-containers-startup/metadata",
         "//gce-containers-startup/types:go_default_library",
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )
 
 go_test(
@@ -56,6 +58,8 @@ go_test(
     srcs = [
         "gce-containers-startup_test.go",
     ],
+    embed = [":go_default_library"],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
     deps = [
         "//gce-containers-startup/utils:go_default_library",
         "//gce-containers-startup/vendor:github.com/docker/engine-api/client",
@@ -66,6 +70,4 @@ go_test(
         "//gce-containers-startup/vendor:golang.org/x/net/context",
         "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
     ],
-    embed = [":go_default_library"],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup",
 )

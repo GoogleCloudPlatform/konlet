@@ -67,7 +67,7 @@ type ContainerRunner struct {
 	VolumesEnv *VolumesModuleEnv
 }
 
-func GetDefaultRunner(metadataProvider MetadataProviderInterface) (*ContainerRunner, error) {
+func GetDefaultRunner(metadataProvider MetadataProvider) (*ContainerRunner, error) {
 	var dockerClient DockerApiClient
 	var err error
 	dockerClient, err = dockerapi.NewClient(DOCKER_UNIX_SOCKET, "", nil, nil)
