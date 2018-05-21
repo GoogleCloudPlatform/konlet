@@ -163,55 +163,6 @@ spec:
       fsType: 'ext4'
       partition: 8`
 
-const INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES = `
-spec:
-  containers:
-  - name: 'test-volume'
-    image: 'gcr.io/google-containers/busybox:latest'
-    volumeMounts:
-    - name: 'testVolume'
-      mountPath: '/tmp/host'
-  volumes:
-  - name: 'testVolume'
-    hostPath:
-      path: '/tmp'
-    emptyDir:
-      medium: 'Memory'`
-
-const INVALID_VOLUME_MANIFEST_UNMAPPED = `
-spec:
-  containers:
-  - name: 'test-volume'
-    image: 'gcr.io/google-containers/busybox:latest'
-    volumeMounts:
-    - name: 'testVolume'
-      mountPath: '/tmp/host'`
-
-const INVALID_VOLUME_MANIFEST_UNREFERENCED = `
-spec:
-  containers:
-  - name: 'test-volume'
-    image: 'gcr.io/google-containers/busybox:latest'
-  volumes:
-  - name: 'testVolume'
-    emptyDir:
-      medium: 'Memory'`
-
-const INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM = `
-spec:
-  containers:
-  - name: 'test-volume'
-    image: 'gcr.io/google-containers/busybox:latest'
-    command: ['ls']
-    args: ["/tmp/host"]
-    volumeMounts:
-    - name: 'testVolume'
-      mountPath: '/tmp/host'
-  volumes:
-  - name: 'testVolume'
-    emptyDir:
-      medium: 'Tablet'`
-
 const OPTIONS_MANIFEST = `
 spec:
   containers:
@@ -484,54 +435,6 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
 	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
-}
-
-func TestExecStartup_invalidVolumeMounts_multipleTypes(t *testing.T) {
-	mockDockerClient := &MockDockerApi{}
-	mockCommandRunner := command.NewMockRunner(t)
-	err := ExecStartupWithMocksAndFakes(
-		mockDockerClient,
-		mockCommandRunner,
-		INVALID_VOLUME_MANIFEST_MULTIPLE_TYPES,
-		SINGLE_DISK_METADATA)
-
-	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Exactly one volume specification required for volume testVolume, 2 found.")
-}
-
-func TestExecStartup_invalidVolumeMounts_unmapped(t *testing.T) {
-	mockDockerClient := &MockDockerApi{}
-	mockCommandRunner := command.NewMockRunner(t)
-	err := ExecStartupWithMocksAndFakes(
-		mockDockerClient,
-		mockCommandRunner,
-		INVALID_VOLUME_MANIFEST_UNMAPPED,
-		SINGLE_DISK_METADATA)
-
-	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume referenced in container test-volume (index: 0) not found in volume definitions.")
-}
-
-func TestExecStartup_invalidVolumeMounts_unrefererenced(t *testing.T) {
-	mockDockerClient := &MockDockerApi{}
-	mockCommandRunner := command.NewMockRunner(t)
-	err := ExecStartupWithMocksAndFakes(
-		mockDockerClient,
-		mockCommandRunner,
-		INVALID_VOLUME_MANIFEST_UNREFERENCED,
-		SINGLE_DISK_METADATA)
-
-	utils.AssertError(t, err, "Failed to start container: Invalid container declaration: Volume testVolume not referenced by any container.")
-}
-
-func TestExecStartup_invalidVolumeMounts_emptydirMedium(t *testing.T) {
-	mockDockerClient := &MockDockerApi{}
-	mockCommandRunner := command.NewMockRunner(t)
-	err := ExecStartupWithMocksAndFakes(
-		mockDockerClient,
-		mockCommandRunner,
-		INVALID_VOLUME_MANIFEST_EMPTYDIR_MEDIUM,
-		SINGLE_DISK_METADATA)
-
-	utils.AssertError(t, err, "Failed to start container: Volume testVolume: Unsupported emptyDir volume medium: Tablet")
 }
 
 func TestExecStartup_options(t *testing.T) {

@@ -27,3 +27,19 @@ go_library(
         "//gce-containers-startup/types:go_default_library",
     ],
 )
+
+go_test(
+    name = "volumes_test",
+    srcs = [
+        "volumes_test.go",
+    ],
+    embed = [":volumes"],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes",
+    deps = [
+        "//gce-containers-startup/command",
+        "//gce-containers-startup/metadata",
+        "//gce-containers-startup/types:go_default_library",
+        "//gce-containers-startup/utils:go_default_library",
+        "//gce-containers-startup/vendor:gopkg.in/yaml.v2",
+    ],
+)
