@@ -29,10 +29,11 @@ type MockCommand struct {
 }
 
 type MockRunner struct {
-	commands          map[string]*MockCommand
-	statFiles         map[string]os.FileInfo
-	expectedMkdirAlls map[string]bool
-	t                 *testing.T
+	FailOnUnexpectedCalls bool
+	commands              map[string]*MockCommand
+	statFiles             map[string]os.FileInfo
+	expectedMkdirAlls     map[string]bool
+	t                     *testing.T
 }
 
 type minimalFileInfo struct {
@@ -67,12 +68,12 @@ func (f minimalFileInfo) Sys() interface{} {
 }
 
 func NewMockRunner(t *testing.T) *MockRunner {
-	return &MockRunner{commands: map[string]*MockCommand{}, statFiles: map[string]os.FileInfo{}, expectedMkdirAlls: map[string]bool{}, t: t}
+	return &MockRunner{FailOnUnexpectedCalls: true, commands: map[string]*MockCommand{}, statFiles: map[string]os.FileInfo{}, expectedMkdirAlls: map[string]bool{}, t: t}
 }
 
 func (m *MockRunner) Run(commandAndArgs ...string) (string, error) {
 	commandString := strings.Join(commandAndArgs, " ")
-	if _, found := m.commands[commandString]; !found {
+	if _, found := m.commands[commandString]; !found && m.FailOnUnexpectedCalls {
 		m.t.Fatal(fmt.Sprintf("Unexpected os command called: %s", commandString))
 	}
 	m.commands[commandString].callCount += 1
@@ -80,20 +81,19 @@ func (m *MockRunner) Run(commandAndArgs ...string) (string, error) {
 }
 
 func (m *MockRunner) MkdirAll(path string, perm os.FileMode) error {
-	if _, found := m.expectedMkdirAlls[path]; found {
-		m.expectedMkdirAlls[path] = true
-		return nil
-	} else {
+	if _, found := m.expectedMkdirAlls[path]; !found && m.FailOnUnexpectedCalls {
 		return fmt.Errorf("MkdirAll() called on unexpected path: %s", path)
 	}
+	m.expectedMkdirAlls[path] = true
+	return nil
 }
 
 func (m *MockRunner) Stat(path string) (os.FileInfo, error) {
-	if fileInfo, found := m.statFiles[path]; found {
-		return fileInfo, nil
-	} else {
+	fileInfo, found := m.statFiles[path]
+	if !found && m.FailOnUnexpectedCalls {
 		return minimalFileInfo{}, fmt.Errorf("MockRunner.Stat(): No such file or directory: %s", path)
 	}
+	return fileInfo, nil
 }
 
 func (m *MockRunner) OutputOnCall(commandAndArgs string, output string) {
