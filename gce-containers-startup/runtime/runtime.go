@@ -212,7 +212,7 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec
 	}
 	// Docker-API compatible types.
 	hostPathBinds := []string{}
-	for _, hostPathBindConfiguration := range volumeBindingConfiguration.HostPathBinds {
+	for _, hostPathBindConfiguration := range volumeBindingConfiguration {
 		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.HostPath, hostPathBindConfiguration.ContainerPath)
 		if hostPathBindConfiguration.ReadOnly {
 			hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)

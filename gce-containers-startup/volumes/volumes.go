@@ -59,22 +59,29 @@ type HostPathBindConfiguration struct {
 	ReadOnly      bool
 }
 
-// VolumeBindingConfiguration represents data about volume binds that is passed
-// to docker. Currently only host binding paths are used, since tmpfs are
-// created on host and bound to containers using the host path mechanism.
-type VolumeBindingConfiguration struct {
-	HostPathBinds []HostPathBindConfiguration
-}
-
-// This is the main interface to this module.
+// PrepareVolumesAndGetBindings does 3 things:
+// - Verifies if the container specification passed to it is correct in terms of
+//   volumes it references.
+// - Creates/mounts/formats all the necessary volumes.
+// - Outputs the binding map, which will be used by the container runtime to
+//   bind the volumes containers.
 //
-// The function takes the API specification and:
-//  - Verifies consistency.
-//  - Creates/mounts/formats all the necessary volumes.
-//  - Outputs all the binding maps, keyed by container name.
+// The function takes a container specification struct. It operates in context
+// of its environment (the receiver), which consist of two parts:
+// - OsCommandRunner: it executes the commands issued during execution of the
+//   function.
+// - MetadataProvider: it is the source of additional information coming from
+//   the metadata, used in processing persistent disks.
 //
-// The caller should not expect the function to be idempotent. Errors are to be considered non-retryable.
-func (env Env) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string]VolumeBindingConfiguration, error) {
+// The function returns a map, its keys are container names (currently this
+// should be a single name) and values are slices of hostPath binds. These
+// corresponds to files and directories that are mounted in a container.
+// Currently all supported types of volumes (EmptyDir, HostPath and
+// PersistentDisk) are ultimately handled using a Docker's hostPath bind.
+//
+// The caller should not expect the function to be idempotent. Errors are to be
+// considered non-retryable.
+func (env Env) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[string][]HostPathBindConfiguration, error) {
 	// First, build maps that will allow to verify logical consistency:
 	//  - All volumes must be referenced at least once.
 	//  - All volume mounts must refer an existing volume.
@@ -107,9 +114,9 @@ func (env Env) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[s
 		return nil, volumeNameMapBuildingError
 	}
 
-	containerBindingConfigurationMap := map[string]VolumeBindingConfiguration{}
+	containerBindingConfigurationMap := map[string][]HostPathBindConfiguration{}
 	for _, container := range spec.Containers {
-		containerBindingConfiguration := VolumeBindingConfiguration{}
+		var hostPathBinds []HostPathBindConfiguration
 		for _, volumeMount := range container.VolumeMounts {
 			// It has already been checked that the volume is present.
 			volumeHostPathAndMode, _ := volumeNameToHostPathMap[volumeMount.Name]
@@ -117,9 +124,9 @@ func (env Env) PrepareVolumesAndGetBindings(spec api.ContainerSpecStruct) (map[s
 			if volumeHostPathAndMode.readOnly && !volumeMount.ReadOnly {
 				return nil, fmt.Errorf("Container %s: volumeMount %s specifies read-write access, but underlying volume is read-only.", container.Name, volumeMount.Name)
 			}
-			containerBindingConfiguration.HostPathBinds = append(containerBindingConfiguration.HostPathBinds, HostPathBindConfiguration{HostPath: volumeHostPathAndMode.hostPath, ContainerPath: volumeMount.MountPath, ReadOnly: volumeMount.ReadOnly})
+			hostPathBinds = append(hostPathBinds, HostPathBindConfiguration{HostPath: volumeHostPathAndMode.hostPath, ContainerPath: volumeMount.MountPath, ReadOnly: volumeMount.ReadOnly})
 		}
-		containerBindingConfigurationMap[container.Name] = containerBindingConfiguration
+		containerBindingConfigurationMap[container.Name] = hostPathBinds
 	}
 
 	return containerBindingConfigurationMap, nil

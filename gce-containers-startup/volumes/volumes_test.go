@@ -96,14 +96,12 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath",
-					ReadOnly:      false,
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath",
+				ReadOnly:      false,
 			},
 		},
 	}
@@ -132,19 +130,17 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath1",
-					ReadOnly:      true,
-				},
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath2",
-					ReadOnly:      false,
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath1",
+				ReadOnly:      true,
+			},
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath2",
+				ReadOnly:      false,
 			},
 		},
 	}
@@ -191,14 +187,12 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "/mnt/disks/gce-containers-mounts/tmpfss/volume",
-					ContainerPath: "containerPath",
-					ReadOnly:      false,
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "/mnt/disks/gce-containers-mounts/tmpfss/volume",
+				ContainerPath: "containerPath",
+				ReadOnly:      false,
 			},
 		},
 	}
@@ -252,17 +246,15 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "/mnt/disks/gce-containers-mounts/tmpfss/volume1",
-					ContainerPath: "containerPath1",
-				},
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath2",
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "/mnt/disks/gce-containers-mounts/tmpfss/volume1",
+				ContainerPath: "containerPath1",
+			},
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath2",
 			},
 		},
 	}
@@ -313,19 +305,17 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath1",
-					ReadOnly:      false,
-				},
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath2",
-					ReadOnly:      true,
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath1",
+				ReadOnly:      false,
+			},
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath2",
+				ReadOnly:      true,
 			},
 		},
 	}
@@ -357,19 +347,17 @@ spec:
 	env, spec := setup(t, declaration, diskMetadata)
 	bindings, err := env.PrepareVolumesAndGetBindings(spec)
 	utils.AssertNoError(t, err)
-	expectedBindings := map[string]VolumeBindingConfiguration{
-		"name": VolumeBindingConfiguration{
-			HostPathBinds: []HostPathBindConfiguration{
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath1",
-					ReadOnly:      false,
-				},
-				HostPathBindConfiguration{
-					HostPath:      "hostPath",
-					ContainerPath: "containerPath2",
-					ReadOnly:      true,
-				},
+	expectedBindings := map[string][]HostPathBindConfiguration{
+		"name": {
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath1",
+				ReadOnly:      false,
+			},
+			{
+				HostPath:      "hostPath",
+				ContainerPath: "containerPath2",
+				ReadOnly:      true,
 			},
 		},
 	}
