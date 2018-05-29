@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package metadata
 
 import (
 	"fmt"
@@ -26,15 +26,15 @@ const (
 	DISKS_METADATA_WITH_RECURSION  = "instance/disks/?recursive=true"
 )
 
-type MetadataProviderInterface interface {
+type Provider interface {
 	RetrieveManifest() ([]byte, error)
 	RetrieveDisksMetadataAsJson() ([]byte, error)
 }
 
-type DefaultMetadataProvider struct {
+type DefaultProvider struct {
 }
 
-func (provider DefaultMetadataProvider) queryMetadataServer(partialUrl string) ([]byte, error) {
+func (provider DefaultProvider) queryMetadataServer(partialUrl string) ([]byte, error) {
 	client := &http.Client{}
 	metadataPath := METADATA_SERVER_URL + partialUrl
 
@@ -56,10 +56,10 @@ func (provider DefaultMetadataProvider) queryMetadataServer(partialUrl string) (
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (provider DefaultMetadataProvider) RetrieveManifest() ([]byte, error) {
+func (provider DefaultProvider) RetrieveManifest() ([]byte, error) {
 	return provider.queryMetadataServer(CONTAINER_DECLARATION_METADATA)
 }
 
-func (provider DefaultMetadataProvider) RetrieveDisksMetadataAsJson() ([]byte, error) {
+func (provider DefaultProvider) RetrieveDisksMetadataAsJson() ([]byte, error) {
 	return provider.queryMetadataServer(DISKS_METADATA_WITH_RECURSION)
 }

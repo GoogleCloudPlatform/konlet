@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package runtime
 
 import (
 	"bytes"
@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"unicode"
 
@@ -35,7 +36,9 @@ import (
 
 	"io"
 
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
 	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/volumes"
 )
 
 const DOCKER_UNIX_SOCKET = "unix:///var/run/docker.sock"
@@ -58,23 +61,29 @@ type DockerApiClient interface {
 	ContainerRemove(ctx context.Context, containerID string, opts dockertypes.ContainerRemoveOptions) error
 }
 
+type OsCommandRunner interface {
+	Run(...string) (string, error)
+	MkdirAll(path string, perm os.FileMode) error
+	Stat(name string) (os.FileInfo, error)
+}
+
 func (e operationTimeout) Error() string {
 	return fmt.Sprintf("%s operation timeout: %v", e.operationType, e.err)
 }
 
 type ContainerRunner struct {
 	Client     DockerApiClient
-	VolumesEnv *VolumesModuleEnv
+	VolumesEnv *volumes.Env
 }
 
-func GetDefaultRunner(metadataProvider MetadataProviderInterface) (*ContainerRunner, error) {
+func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider metadata.Provider) (*ContainerRunner, error) {
 	var dockerClient DockerApiClient
 	var err error
 	dockerClient, err = dockerapi.NewClient(DOCKER_UNIX_SOCKET, "", nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient, VolumesEnv: &VolumesModuleEnv{OsCommandRunner: RealOsCommandRunner{}, MetadataProvider: metadataProvider}}, nil
+	return &ContainerRunner{Client: dockerClient, VolumesEnv: &volumes.Env{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
@@ -173,7 +182,7 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
 }
 
-func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv, spec api.ContainerSpecStruct) (string, error) {
+func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec api.ContainerSpecStruct) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -203,21 +212,12 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 	}
 	// Docker-API compatible types.
 	hostPathBinds := []string{}
-	tmpFsBinds := map[string]string{}
-	// Hack to workaround the issue with double mount point for tmpFs.
-	tmpFsBindsAsVolumes := map[string]struct{}{}
-	for _, hostPathBindConfiguration := range volumeBindingConfiguration.hostPathBinds {
-		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.hostPath, hostPathBindConfiguration.containerPath)
-		if hostPathBindConfiguration.readOnly {
+	for _, hostPathBindConfiguration := range volumeBindingConfiguration {
+		hostPathBind := fmt.Sprintf("%s:%s", hostPathBindConfiguration.HostPath, hostPathBindConfiguration.ContainerPath)
+		if hostPathBindConfiguration.ReadOnly {
 			hostPathBind = fmt.Sprintf("%s:ro", hostPathBind)
 		}
 		hostPathBinds = append(hostPathBinds, hostPathBind)
-	}
-	for _, tmpFsBindConfiguration := range volumeBindingConfiguration.tmpFsBinds {
-		tmpFsBinds[tmpFsBindConfiguration.path] = ""
-		if tmpFsBindConfiguration.path == "/dev/shm" {
-			tmpFsBindsAsVolumes[tmpFsBindConfiguration.path] = struct{}{}
-		}
 	}
 
 	env := []string{}
@@ -253,11 +253,9 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *VolumesModuleEnv,
 			Env:        env,
 			OpenStdin:  container.StdIn,
 			Tty:        container.Tty,
-			Volumes:    tmpFsBindsAsVolumes,
 		},
 		HostConfig: &dockercontainer.HostConfig{
 			Binds:       hostPathBinds,
-			Tmpfs:       tmpFsBinds,
 			AutoRemove:  autoRemove,
 			NetworkMode: "host",
 			Privileged:  container.SecurityContext.Privileged,

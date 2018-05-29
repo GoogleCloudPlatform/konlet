@@ -1,4 +1,4 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,22 +17,10 @@ package(default_visibility = ["//visibility:public"])
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "command",
     srcs = [
-        "auth.go",
-        "iptables.go",
-        "registry.go",
-        "testing.go",
-        "welcome-message.go",
+        "mock_runner.go",
+        "runner.go",
     ],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = [
-        "utils_test.go",
-    ],
-    embed = [":go_default_library"],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command",
 )

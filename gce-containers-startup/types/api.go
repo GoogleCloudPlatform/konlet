@@ -92,13 +92,16 @@ type ContainerSpecStruct struct {
 
 type Volume struct {
 	Name string
-	// Only one of EmptyDir or HostPath should be present
+	// Only one of EmptyDir, HostPath or GcePersistentDiskVolume should be present
 	EmptyDir          *EmptyDirVolume          `yaml:"emptyDir"`
 	HostPath          *HostPathVolume          `yaml:"hostPath"`
 	GcePersistentDisk *GcePersistentDiskVolume `yaml:"gcePersistentDisk"`
 }
 
+// EmptyDirVolume represents an empty directory (hence the name) that can be
+// mounted into a container.
 type EmptyDirVolume struct {
+	// The only currently supported Medium is "Memory"
 	Medium string
 }
 

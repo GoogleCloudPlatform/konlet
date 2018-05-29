@@ -20,8 +20,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/runtime"
+	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
+
 	api "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/types"
-	utils "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -40,8 +44,7 @@ func main() {
 	log.Printf("Starting Konlet container startup agent")
 	flag.Parse()
 
-	var metadataProvider utils.MetadataProviderInterface
-	metadataProvider = utils.DefaultMetadataProvider{}
+	metadataProvider := metadata.DefaultProvider{}
 
 	var authProvider utils.AuthProvider
 	if *tokenFlag == "" {
@@ -50,7 +53,7 @@ func main() {
 		authProvider = utils.ConstantTokenProvider{Token: *tokenFlag}
 	}
 
-	runner, err := utils.GetDefaultRunner(metadataProvider)
+	runner, err := runtime.GetDefaultRunner(command.Runner{}, metadataProvider)
 	if err != nil {
 		log.Panicf("Failed to initialize Konlet: %v", err)
 	}
@@ -60,7 +63,7 @@ func main() {
 	}
 }
 
-func ExecStartup(metadataProvider utils.MetadataProviderInterface, authProvider utils.AuthProvider, runner *utils.ContainerRunner, openIptables bool) error {
+func ExecStartup(metadataProvider metadata.Provider, authProvider utils.AuthProvider, runner *runtime.ContainerRunner, openIptables bool) error {
 	body, err := metadataProvider.RetrieveManifest()
 	if err != nil {
 		return fmt.Errorf("Cannot load container declaration: %v", err)

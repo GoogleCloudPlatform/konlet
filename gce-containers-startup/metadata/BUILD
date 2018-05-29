@@ -17,22 +17,10 @@ package(default_visibility = ["//visibility:public"])
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "metadata",
     srcs = [
-        "auth.go",
-        "iptables.go",
-        "registry.go",
-        "testing.go",
-        "welcome-message.go",
+        "provider.go",
+        "provider_stub.go",
     ],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = [
-        "utils_test.go",
-    ],
-    embed = [":go_default_library"],
-    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/utils",
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata",
 )
