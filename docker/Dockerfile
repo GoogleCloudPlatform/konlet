@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/google_containers/ubuntu-slim:0.6
-MAINTAINER gjaskiewicz@google.com
+FROM gcr.io/google_containers/debian-base-amd64:0.3
+MAINTAINER containers-on-mig@google.com
 
 RUN apt-get update && apt-get install -y iptables mount e2fsprogs util-linux
 COPY gce-containers-startup /bin/gce-containers-startup
