@@ -15,8 +15,13 @@
 FROM gcr.io/google_containers/ubuntu-slim:0.6
 MAINTAINER gjaskiewicz@google.com
 
-RUN apt-get update && apt-get install -y iptables mount e2fsprogs util-linux
+RUN apt-get update && apt-get install -y iptables mount util-linux
 COPY gce-containers-startup /bin/gce-containers-startup
+COPY e2fslibs_1.43.5-1_amd64.deb /tmp/e2fslibs.deb
+COPY e2fsprogs_1.43.5-1_amd64.deb /tmp/e2fsprogs.deb
+RUN dpkg -i /tmp/e2fslibs.deb
+RUN dpkg -i /tmp/e2fsprogs.deb
+RUN rm /tmp/e2fslibs.deb /tmp/e2fsprogs.deb
 
 CMD ["/bin/gce-containers-startup"]
 
