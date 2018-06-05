@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 	"unicode"
@@ -42,6 +44,7 @@ import (
 )
 
 const DOCKER_UNIX_SOCKET = "unix:///var/run/docker.sock"
+const CONTAINER_NAME_PREFIX = "klt"
 
 var (
 	gcploggingFlag = flag.Bool("gcp-logging", true, "whether to configure GCP Logging")
@@ -74,6 +77,18 @@ func (e operationTimeout) Error() string {
 type ContainerRunner struct {
 	Client     DockerApiClient
 	VolumesEnv *volumes.Env
+	RandEnv    *rand.Rand
+}
+
+// To produce deterministic results, tests can use a constant seed, while real runtime
+// can seed based on entropy.
+func generateRandomSuffix(length int, randEnv *rand.Rand) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyz")
+	generated := make([]rune, length)
+	for i := range generated {
+		generated[i] = letters[randEnv.Intn(len(letters))]
+	}
+	return string(generated)
 }
 
 func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider metadata.Provider) (*ContainerRunner, error) {
@@ -83,22 +98,32 @@ func GetDefaultRunner(osCommandRunner OsCommandRunner, metadataProvider metadata
 	if err != nil {
 		return nil, err
 	}
-	return &ContainerRunner{Client: dockerClient, VolumesEnv: &volumes.Env{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
+	// In order to make container names and other randomly generated content
+	// deterministic on the same machine during each restart cycle, we seed
+	// the generator with hostname and boot time.
+	var hostname string
+	hostname, err = os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	var lastBootTime string
+	lastBootTime, err = osCommandRunner.Run("who", "-b")
+	if err != nil {
+		return nil, err
+	}
+	hashedHostnameAndBoot := fnv.New64a()
+	hashedHostnameAndBoot.Write([]byte(hostname))
+	hashedHostnameAndBoot.Write([]byte(" * * * ")) // Some separator.
+	hashedHostnameAndBoot.Write([]byte(lastBootTime))
+	randEnv := rand.New(rand.NewSource(int64(hashedHostnameAndBoot.Sum64())))
+
+	return &ContainerRunner{Client: dockerClient, RandEnv: randEnv, VolumesEnv: &volumes.Env{OsCommandRunner: osCommandRunner, MetadataProvider: metadataProvider}}, nil
 }
 
 func (runner ContainerRunner) RunContainer(auth string, spec api.ContainerSpecStruct, detach bool) error {
-	err := pullImage(runner.Client, auth, spec.Containers[0])
-	if err != nil {
-		return err
-	}
-
-	err = deleteOldContainer(runner.Client, spec.Containers[0])
-	if err != nil {
-		return err
-	}
-
 	var id string
-	id, err = createContainer(runner.Client, runner.VolumesEnv, spec)
+	var err error
+	id, err = createContainer(runner, auth, spec)
 	if err != nil {
 		return err
 	}
@@ -157,8 +182,7 @@ func findIdForName(containers []dockertypes.Container, containerName string) (st
 	return "", false
 }
 
-func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error {
-	var containerName = spec.Name
+func deleteOldContainer(dockerClient DockerApiClient, containerName string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -182,15 +206,26 @@ func deleteOldContainer(dockerClient DockerApiClient, spec api.Container) error 
 	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
 }
 
-func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec api.ContainerSpecStruct) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpecStruct) (string, error) {
 	if len(spec.Containers) != 1 {
 		return "", fmt.Errorf("Exactly one container in declaration expected.")
 	}
 
 	container := spec.Containers[0]
+	generatedContainerName := fmt.Sprintf("%s-%s-%s", CONTAINER_NAME_PREFIX, container.Name, generateRandomSuffix(4, runner.RandEnv))
+	log.Printf("Configured container '%s' will be started with name '%s'.\n", container.Name, generatedContainerName)
+
+	if err := pullImage(runner.Client, auth, container); err != nil {
+		return "", err
+	}
+
+	if err := deleteOldContainer(runner.Client, generatedContainerName); err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	printWarningIfLikelyHasMistake(container.Command, container.Args)
 
 	var runCommand dockerstrslice.StrSlice
@@ -202,7 +237,7 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec
 		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
-	containerVolumeBindingConfigurationMap, volumePrepareError := volumesEnv.PrepareVolumesAndGetBindings(spec)
+	containerVolumeBindingConfigurationMap, volumePrepareError := runner.VolumesEnv.PrepareVolumesAndGetBindings(spec)
 	if volumePrepareError != nil {
 		return "", volumePrepareError
 	}
@@ -245,7 +280,7 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec
 	}
 
 	opts := dockertypes.ContainerCreateConfig{
-		Name: container.Name,
+		Name: generatedContainerName,
 		Config: &dockercontainer.Config{
 			Entrypoint: runCommand,
 			Cmd:        runArgs,
@@ -266,7 +301,7 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec
 		},
 	}
 
-	createResp, err := dockerClient.ContainerCreate(
+	createResp, err := runner.Client.ContainerCreate(
 		ctx, opts.Config, opts.HostConfig, opts.NetworkingConfig, opts.Name)
 	if ctxErr := contextError(ctx, "Create container"); ctxErr != nil {
 		return "", ctxErr
@@ -274,7 +309,7 @@ func createContainer(dockerClient DockerApiClient, volumesEnv *volumes.Env, spec
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Created a container with name '%s' and ID: %s", container.Name, createResp.ID)
+	log.Printf("Created a container with name '%s' and ID: %s", generatedContainerName, createResp.ID)
 
 	return createResp.ID, nil
 }
