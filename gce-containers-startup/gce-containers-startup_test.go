@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -311,7 +312,7 @@ func (api *MockDockerApi) ContainerStart(ctx context.Context, container string) 
 
 func (api *MockDockerApi) ContainerList(ctx context.Context, opts dockertypes.ContainerListOptions) ([]dockertypes.Container, error) {
 	return []dockertypes.Container{
-		dockertypes.Container{ID: MOCK_EXISTING_CONTAINER_ID, Names: []string{"/test-remove"}},
+		dockertypes.Container{ID: MOCK_EXISTING_CONTAINER_ID, Names: []string{"/klt-test-remove-xvlb"}},
 	}, nil
 }
 
@@ -323,10 +324,12 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunner *command.MockRunner, manifest string, diskMetadata string) error {
 	metadataProviderStub := metadata.ProviderStub{Manifest: manifest, DiskMetadataJson: diskMetadata}
 	volumesEnv := &volumes.Env{OsCommandRunner: mockCommandRunner, MetadataProvider: metadataProviderStub}
+	// This will generate "xvlb" suffix for container name.
+	randEnv := rand.New(rand.NewSource(1))
 	return ExecStartup(
 		metadataProviderStub,
 		utils.ConstantTokenProvider{Token: MOCK_AUTH_TOKEN},
-		&runtime.ContainerRunner{Client: mockDockerApi, VolumesEnv: volumesEnv},
+		&runtime.ContainerRunner{Client: mockDockerApi, VolumesEnv: volumesEnv, RandEnv: randEnv},
 		false, /* openIptables */
 	)
 }
@@ -342,7 +345,7 @@ func TestExecStartup_simple(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-simple-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
@@ -361,7 +364,7 @@ func TestExecStartup_runCommand(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-run-command-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
@@ -381,7 +384,7 @@ func TestExecStartup_runArgs(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-run-command", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-run-command-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"echo"}), mockDockerClient.CreateRequest.Entrypoint, "")
@@ -401,7 +404,7 @@ func TestExecStartup_env(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-env-vars", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-env-vars-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
@@ -424,7 +427,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-volume", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-volume-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t,
@@ -447,7 +450,7 @@ func TestExecStartup_options(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-options", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-options-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"sleep"}), mockDockerClient.CreateRequest.Entrypoint, "")
@@ -470,7 +473,7 @@ func TestExecStartup_removeContainer(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-remove", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-remove-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
@@ -512,7 +515,7 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-restart-policy", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-restart-policy-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
@@ -567,7 +570,7 @@ func TestExecStartup_ignorePodFields(t *testing.T) {
 		SINGLE_DISK_METADATA)
 
 	utils.AssertNoError(t, err)
-	utils.AssertEqual(t, "test-simple", mockDockerClient.ContainerName, "")
+	utils.AssertEqual(t, "klt-test-simple-xvlb", mockDockerClient.ContainerName, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
