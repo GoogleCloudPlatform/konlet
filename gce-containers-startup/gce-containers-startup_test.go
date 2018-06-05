@@ -324,6 +324,7 @@ func (api *MockDockerApi) ContainerRemove(ctx context.Context, containerID strin
 func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunner *command.MockRunner, manifest string, diskMetadata string) error {
 	metadataProviderStub := metadata.ProviderStub{Manifest: manifest, DiskMetadataJson: diskMetadata}
 	volumesEnv := &volumes.Env{OsCommandRunner: mockCommandRunner, MetadataProvider: metadataProviderStub}
+	// This will generate "xvlb" suffix for container name.
 	randEnv := rand.New(rand.NewSource(1))
 	return ExecStartup(
 		metadataProviderStub,
