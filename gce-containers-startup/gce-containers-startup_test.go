@@ -804,6 +804,26 @@ func TestExecStartup_pdValidAndNotFormattedButMkfsFails(t *testing.T) {
 	utils.AssertError(t, err, "Failed to start container: Volume pd1: Failed to format filesystem: mkfs enters an infinite loop for a while")
 }
 
+func TestExecStartup_pdValidButContainsSubpartitions(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	mockCommandRunner := command.NewMockRunner(t)
+
+	// Prepare the whole PD command chain.
+	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
+	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "\next4\n")
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "\n\n")
+	// Debug lsblk run:
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk", "debugging data so useful")
+
+	err := ExecStartupWithMocksAndFakes(
+		mockDockerClient,
+		mockCommandRunner,
+		GCE_PD_VOLUME_MANIFEST,
+		GCE_ATTACHED_RW_DISK_METADATA)
+	utils.AssertError(t, err, "Failed to start container: Volume pd1: Received multiline output from lsblk. The device likely contains subpartitions:\ndebugging data so useful")
+}
+
 func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)

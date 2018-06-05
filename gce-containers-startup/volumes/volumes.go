@@ -419,10 +419,21 @@ func (env Env) checkDeviceNotMounted(devicePath string) error {
 //
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
+//
+// Error is returned upon failed command execution or multiline lsblk output,
+// signalling children devices (likely subpartitions).
 func (env Env) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
 	output, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk", "-n", "-o", property, devicePath)...)
 	if err != nil {
 		return "", err
+	}
+	if strings.Count(output, "\n") > 1 {
+		// Try to print standard lsblk output to show what's there.
+		debugOutput, debugErr := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk")...)
+		if debugErr != nil {
+			return "", fmt.Errorf("Received multiline output, but can't run standard lsblk for debug output: %s", debugErr)
+		}
+		return "", fmt.Errorf("Received multiline output from lsblk. The device likely contains subpartitions:\n%s", debugOutput)
 	}
 	return strings.TrimSpace(output), nil
 }
