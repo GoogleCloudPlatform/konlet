@@ -420,7 +420,7 @@ func (env Env) checkDeviceNotMounted(devicePath string) error {
 // Empty string is returned if property is not present and/or lsblk has
 // no access to the device.
 func (env Env) getSinglePropertyFromDeviceWithLsblk(devicePath string, property string) (string, error) {
-	output, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk", "-nd", "-o", property, devicePath)...)
+	output, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("lsblk", "-n", "-o", property, devicePath)...)
 	if err != nil {
 		return "", err
 	}
