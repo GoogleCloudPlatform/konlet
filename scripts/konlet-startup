@@ -6,6 +6,14 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
+#!/bin/bash
+
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
@@ -15,7 +23,7 @@
 # limitations under the License.
 
 readonly GET_METADATA_VALUE='/usr/share/google/get_metadata_value'
-readonly KONLET_VERSION_TAG='v.alpha.0.7-latest'
+readonly KONLET_VERSION_TAG='v.0.8-latest'
 
 SPEC=$(${GET_METADATA_VALUE} 'attributes/gce-container-declaration')
 if [[ $? -ne 0 ]]; then
@@ -50,7 +58,6 @@ sudo sh -c 'echo "# Collects logs generated from Docker events.
 
 sudo systemctl start stackdriver-docker-events-collector.service
 sudo systemctl restart stackdriver-logging.service
-
 docker run --rm --privileged \
   --log-driver=gcplogs \
   --net="host" \
