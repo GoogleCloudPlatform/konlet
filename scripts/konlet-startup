@@ -28,19 +28,28 @@ if [[ $? -ne 0 ]]; then
   ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
 fi
 
-sudo mkdir /var/lib/docker/containers/events/
-sudo touch /var/lib/docker/containers/events/docker_events.log
-# Set up log rotate so that in case of long running VMs we do not have a log file
-# that is growing and growing and growing...
-sudo sh -c 'echo "/var/lib/docker/containers/events/docker_events.log {
-   rotate 7
-   daily
-   missingok
- }" >> /etc/logrotate.conf'
-# Docker events are saved in a file under /var/lib/docker/containers/ and as such will
-# be automatically written to Stackdriver if the Stackdriver Logging agent is enabled
-# for the VM.
-sudo sh -c 'docker events --format "{{json .}}" > /var/lib/docker/containers/events/docker_events.log &'
+sudo sh -c 'echo "[Unit]
+Description=A daemon to collect Docker events and send to to journal logs.
+After=docker.socket
+Wants=docker.socket
+
+[Service]
+ExecStart=/usr/bin/docker events
+Restart=on-failure
+RestartSec=5
+" >> /etc/systemd/system/stackdriver-docker-events-collector.service'
+
+sudo sh -c 'echo "# Collects logs generated from Docker events.
+<source>
+  @type systemd
+  filters [{ \"_SYSTEMD_UNIT\": \"stackdriver-docker-events-collector.service\" }]
+  pos_file /var/log/google-fluentd/stackdriver-docker-events.log.pos
+  read_from_head true
+  tag cos_docker_events
+</source>" >> /etc/stackdriver/logging.config.d/fluentd-lakitu.conf'
+
+sudo systemctl start stackdriver-docker-events-collector.service
+sudo systemctl restart stackdriver-logging.service
 
 docker run --rm --privileged \
   --log-driver=gcplogs \
