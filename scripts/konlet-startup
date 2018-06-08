@@ -6,6 +6,14 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
+#!/bin/bash
+
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
@@ -28,6 +36,28 @@ if [[ $? -ne 0 ]]; then
   ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
 fi
 
+sudo sh -c 'echo "[Unit]
+Description=A daemon to collect Docker events and send to to journal logs.
+After=docker.socket
+Wants=docker.socket
+
+[Service]
+ExecStart=/usr/bin/docker events
+Restart=on-failure
+RestartSec=5
+" >> /etc/systemd/system/stackdriver-docker-events-collector.service'
+
+sudo sh -c 'echo "# Collects logs generated from Docker events.
+<source>
+  @type systemd
+  filters [{ \"_SYSTEMD_UNIT\": \"stackdriver-docker-events-collector.service\" }]
+  pos_file /var/log/google-fluentd/stackdriver-docker-events.log.pos
+  read_from_head true
+  tag cos_docker_events
+</source>" >> /etc/stackdriver/logging.config.d/fluentd-lakitu.conf'
+
+sudo systemctl start stackdriver-docker-events-collector.service
+sudo systemctl restart stackdriver-logging.service
 docker run --rm --privileged \
   --log-driver=gcplogs \
   --net="host" \
