@@ -22,6 +22,11 @@ if [[ $? -ne 0 ]]; then
   echo 'No metadata present - not running Docker event collector.'
   exit 0
 fi
+LOGGING_ENABLED=$(${GET_METADATA_VALUE} 'attributes/google-logging-enabled')
+if [[ $? -ne 0 || ${LOGGING_ENABLED} != 'true' ]]; then
+  echo 'Stackdriver Logging not enabled - not running Docker event collector.'
+  exit 0
+fi
 
 if [[ ! -f ${CONFIG_FILE} ]]; then
   echo '# Collects logs generated from Docker events.
