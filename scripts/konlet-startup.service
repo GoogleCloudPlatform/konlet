@@ -14,11 +14,11 @@
 
 [Unit]
 Description=Containers on GCE Setup
-Requires=network-online.target
-After=network-online.target google-startup-scripts.service stackdriver-logging.service
+Wants=network-online.target google-startup-scripts.service gcr-online.target docker.socket
+After=network-online.target google-startup-scripts.service gcr-online.target docker.socket stackdriver-logging.service
 
 [Service]
-ExecStart=/usr/share/google-containers/konlet-startup
+ExecStart=/usr/share/gce-containers/konlet-startup
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal+console
