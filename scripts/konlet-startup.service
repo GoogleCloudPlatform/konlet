@@ -20,7 +20,7 @@ After=network-online.target google-startup-scripts.service gcr-online.target doc
 [Service]
 ExecStart=/usr/share/gce-containers/konlet-startup
 Restart=on-failure
-RestartSec=5
+RestartSec=30
 StandardOutput=journal+console
 
 [Install]
