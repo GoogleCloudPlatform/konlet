@@ -19,7 +19,7 @@ Wants=docker.socket
 Before=stackdriver-logging.service
 
 [Service]
-ExecStart=/usr/share/google-containers/konlet-docker-events-startup
+ExecStart=/usr/share/gce-containers/konlet-docker-events-startup
 Restart=on-failure
 RestartSec=5
 
