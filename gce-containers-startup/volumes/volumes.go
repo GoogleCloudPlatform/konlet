@@ -15,7 +15,10 @@
 package volumes
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -57,6 +60,112 @@ type HostPathBindConfiguration struct {
 	HostPath      string
 	ContainerPath string
 	ReadOnly      bool
+}
+
+type mount struct {
+	device     string
+	mountPoint string
+	fsType     string
+	options    string
+}
+
+type mountOption func(*mount)
+
+func newMount(device, mountPoint, fsType string, opts ...mountOption) mount {
+	mnt := mount{device, mountPoint, fsType, ""}
+	for _, opt := range opts {
+		opt(&mnt)
+	}
+	return mnt
+}
+
+func readOnly(ro bool) mountOption {
+	return func(mnt *mount) {
+		var opt string
+		if ro {
+			opt = "ro"
+		} else {
+			opt = "rw"
+		}
+		if mnt.options == "" {
+			mnt.options = opt
+			return
+		}
+		mnt.options += ("," + opt)
+	}
+}
+
+// UnmountExistingVolumes unmounts all volumes mounted under the directory
+// managed by konlet. The function continues even if some unmounting operations
+// fail and reports errors, if any, at the end.
+func (env Env) UnmountExistingVolumes() error {
+	mounts, err := env.existingMounts()
+	if err != nil {
+		return fmt.Errorf("failed to list existing volumes: %v", err)
+	}
+	var buf bytes.Buffer
+	for _, mnt := range mounts {
+		if err := env.unmountDevice(mnt); err != nil {
+			buf.WriteString(fmt.Sprintf("%v\n", err))
+			continue
+		}
+		log.Printf("Unmounted %s", mnt.mountPoint)
+	}
+	if buf.Len() > 0 {
+		return errors.New(buf.String())
+	}
+	return nil
+}
+
+// existingMounts returns a slice of mount descriptors containing all existing
+// devices mounted by konlet (they are mounted at paths prefixed by
+// mountedVolumesPathPrefixFlag).
+func (env Env) existingMounts() ([]mount, error) {
+	file, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("cat", "/proc/mounts")...)
+	if err != nil {
+		return nil, err
+	}
+	var mounts []mount
+	scanner := bufio.NewScanner(strings.NewReader(file))
+	for scanner.Scan() {
+		line := scanner.Text()
+		mnt, err := parseMountEntry(line)
+		if err != nil || mnt == nil {
+			continue
+		}
+		if strings.HasPrefix(mnt.mountPoint, *mountedVolumesPathPrefixFlag) {
+			mounts = append(mounts, *mnt)
+		}
+	}
+	return mounts, nil
+}
+
+// parseMountEntry takes a single line of /proc/mounts and returns a pointer to
+// a struct with corresponding fields and a nil error if parsing succeeded. The
+// pointer may be nil if the line is a comment. If the format is not as expected
+// the function returns a nil value and a non-nil error.
+func parseMountEntry(entry string) (*mount, error) {
+	if strings.HasPrefix(entry, "#") { // The entry is a comment.
+		return nil, nil
+	}
+	parts := strings.Split(entry, " ")
+	if len(parts) < 4 {
+		return nil, fmt.Errorf("invalid format: expected at least 4 space-separated columns")
+	}
+	// There may be 4 escaped characters (space (\040), tab (\011), newline (\012)
+	// and backslash (\134)), so we unescape them if necessary.
+	unescape := strings.NewReplacer(
+		`\040`, "\040",
+		`\011`, "\011",
+		`\012`, "\012",
+		`\134`, "\134",
+	)
+	return &mount{
+		device:     unescape.Replace(parts[0]),
+		mountPoint: unescape.Replace(parts[1]),
+		fsType:     unescape.Replace(parts[2]),
+		options:    unescape.Replace(parts[3]),
+	}, nil
 }
 
 // PrepareVolumesAndGetBindings does 3 things:
@@ -187,7 +296,7 @@ func (env Env) processMemoryBackedEmptyDirVolume(volume *api.EmptyDirVolume, vol
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := env.mountDevice("tmpfs", tmpfsMountPoint, "tmpfs", false); err != nil {
+	if err := env.mountDevice(newMount("tmpfs", tmpfsMountPoint, "tmpfs", readOnly(false))); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 	return VolumeHostPathAndMode{hostPath: tmpfsMountPoint, readOnly: false}, nil
@@ -241,7 +350,8 @@ func (env Env) processGcePersistentDiskVolume(volume *api.GcePersistentDiskVolum
 	if err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
-	if err := env.mountDevice(devicePath, deviceMountPoint, chosenFsType, mountReadOnly); err != nil {
+	mnt := newMount(devicePath, deviceMountPoint, chosenFsType, readOnly(mountReadOnly))
+	if err := env.mountDevice(mnt); err != nil {
 		return VolumeHostPathAndMode{}, err
 	}
 
@@ -312,28 +422,30 @@ func wrapToEnterHostMountNamespace(origCommandline ...string) []string {
 	return append(nsenterCommandline, origCommandline...)
 }
 
-// Attempt to mount the device under a generated path. Assumes the device
-// contains an clean filesystem.
-func (env Env) mountDevice(devicePath string, mountPath string, fsType string, readOnly bool) error {
-	log.Printf("Attempting to mount device %s at %s.", devicePath, mountPath)
-
-	var mountOpts []string
-	if readOnly {
-		mountOpts = append(mountOpts, "ro")
-	} else {
-		mountOpts = append(mountOpts, "rw")
-	}
+// Attempt to mount the device at the specified path. Assumes the device
+// contains a clean filesystem.
+func (env Env) mountDevice(mnt mount) error {
+	log.Printf("Attempting to mount device %s at %s.", mnt.device, mnt.mountPoint)
 	mountCommandline := []string{"mount"}
-	if len(mountOpts) > 0 {
-		mountCommandline = append(mountCommandline, "-o", strings.Join(mountOpts, ","))
+	if len(mnt.options) > 0 {
+		mountCommandline = append(mountCommandline, "-o", mnt.options)
 	}
-	mountCommandline = append(mountCommandline, "-t", fsType, devicePath, mountPath)
+	mountCommandline = append(mountCommandline, "-t", mnt.fsType, mnt.device, mnt.mountPoint)
 	_, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace(mountCommandline...)...)
 	if err != nil {
-		return fmt.Errorf("Failed to mount %s at %s: %s", devicePath, mountPath, err)
-	} else {
-		return nil
+		return fmt.Errorf("Failed to mount %s at %s: %v", mnt.device, mnt.mountPoint, err)
 	}
+	return nil
+}
+
+// Attempt to unmount the device at the specified path.
+func (env Env) unmountDevice(mnt mount) error {
+	log.Printf("Attempting to unmount device %s at %s.", mnt.device, mnt.mountPoint)
+	_, err := env.OsCommandRunner.Run(wrapToEnterHostMountNamespace("umount", mnt.mountPoint)...)
+	if err != nil {
+		return fmt.Errorf("Failed to unmount %s at %s: %v", mnt.device, mnt.mountPoint, err)
+	}
+	return nil
 }
 
 func (env Env) checkDeviceReadable(devicePath string) error {
