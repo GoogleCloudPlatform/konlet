@@ -112,7 +112,8 @@ func (env Env) UnmountExistingVolumes() error {
 		log.Printf("Unmounted %s", mnt.mountPoint)
 	}
 	if buf.Len() > 0 {
-		return errors.New(buf.String())
+		msg := buf.String()
+		return errors.New(msg[:len(msg)-1]) // remove trailing newline
 	}
 	return nil
 }

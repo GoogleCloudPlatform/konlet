@@ -15,6 +15,7 @@
 package volumes
 
 import (
+	"errors"
 	"fmt"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/command"
 	"github.com/GoogleCloudPlatform/konlet/gce-containers-startup/metadata"
@@ -23,6 +24,48 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	"testing"
 )
+
+func Test_UnmountExistingVolumes_UnmountsVolumesInKonletVolumeDirectory(t *testing.T) {
+	commandRunner := command.NewMockRunner(t)
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts",
+		`tmpfs /mnt/disks/gce-containers-mounts/tmpfss/volume tmpfs rw,nosuid,nodev 0 0
+/dev/disk /mnt/disks/gce-containers-mounts/gce-persistent-disks/disk ext4 ro 0 0`)
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/tmpfss/volume", "")
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/gce-persistent-disks/disk", "")
+	env := Env{
+		OsCommandRunner: commandRunner,
+	}
+	err := env.UnmountExistingVolumes()
+	utils.AssertNoError(t, err)
+	commandRunner.AssertAllCalled()
+}
+
+func Test_UnmountExistingVolumes_DoesNotUnmountVolumesOutsideOfKonletVolumeDirectory(t *testing.T) {
+	commandRunner := command.NewMockRunner(t)
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts",
+		"tmpfs /mnt/disks/kubernetes/volume tmpfs rw,nosuid,nodev 0 0")
+	env := Env{
+		OsCommandRunner: commandRunner,
+	}
+	err := env.UnmountExistingVolumes()
+	utils.AssertNoError(t, err)
+	commandRunner.AssertAllCalled()
+}
+
+func Test_UnmountExistingVolumes_ContinuesIfUnmountingFails(t *testing.T) {
+	commandRunner := command.NewMockRunner(t)
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts",
+		`tmpfs /mnt/disks/gce-containers-mounts/tmpfss/volume tmpfs rw,nosuid,nodev 0 0
+/dev/disk /mnt/disks/gce-containers-mounts/gce-persistent-disks/disk ext4 ro 0 0`)
+	commandRunner.ErrorOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/tmpfss/volume", errors.New("volume in use"))
+	commandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/gce-persistent-disks/disk", "")
+	env := Env{
+		OsCommandRunner: commandRunner,
+	}
+	err := env.UnmountExistingVolumes()
+	utils.AssertError(t, err, "Failed to unmount tmpfs at /mnt/disks/gce-containers-mounts/tmpfss/volume: volume in use")
+	commandRunner.AssertAllCalled()
+}
 
 func TestPrepareVolumesAndGetBindings_FailsIfContainerReferencesUndefinedVolume(t *testing.T) {
 	declaration := `
