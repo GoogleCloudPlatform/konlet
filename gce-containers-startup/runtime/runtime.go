@@ -237,6 +237,9 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 		runArgs = dockerstrslice.StrSlice(container.Args)
 	}
 
+	if err := runner.VolumesEnv.UnmountExistingVolumes(); err != nil {
+		log.Printf("Error: failed to unmount volumes:\n%v", err)
+	}
 	containerVolumeBindingConfigurationMap, volumePrepareError := runner.VolumesEnv.PrepareVolumesAndGetBindings(spec)
 	if volumePrepareError != nil {
 		return "", volumePrepareError

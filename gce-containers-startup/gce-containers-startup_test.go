@@ -337,7 +337,7 @@ func ExecStartupWithMocksAndFakes(mockDockerApi *MockDockerApi, mockCommandRunne
 func TestExecStartup_simple(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
-
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -356,7 +356,7 @@ func TestExecStartup_simple(t *testing.T) {
 func TestExecStartup_runCommand(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
-
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -377,6 +377,7 @@ func TestExecStartup_runCommand(t *testing.T) {
 func TestExecStartup_runArgs(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -397,6 +398,7 @@ func TestExecStartup_runArgs(t *testing.T) {
 func TestExecStartup_env(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -419,6 +421,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
 	mockCommandRunner.RegisterMkdirAll(EMPTYDIR_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t tmpfs tmpfs "+EMPTYDIR_HOST_MOUNT_PATH, "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -443,6 +446,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 func TestExecStartup_options(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -466,6 +470,7 @@ func TestExecStartup_options(t *testing.T) {
 func TestExecStartup_removeContainer(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -484,6 +489,7 @@ func TestExecStartup_removeContainer(t *testing.T) {
 func TestExecStartup_noMultiContainer(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -496,6 +502,7 @@ func TestExecStartup_noMultiContainer(t *testing.T) {
 func TestExecStartup_emptyManifest(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -508,6 +515,7 @@ func TestExecStartup_emptyManifest(t *testing.T) {
 func TestExecStartup_restartPolicy(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -531,6 +539,7 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 func TestExecStartup_invalidRestartPolicy(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -545,6 +554,7 @@ func TestExecStartup_problem(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
 	mockCommandRunner.RegisterMkdirAll(EMPTYDIR_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- mount -o rw -t tmpfs tmpfs "+EMPTYDIR_HOST_MOUNT_PATH, "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -563,6 +573,7 @@ func TestExecStartup_problem(t *testing.T) {
 func TestExecStartup_ignorePodFields(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
 		mockCommandRunner,
@@ -581,10 +592,10 @@ func TestExecStartup_ignorePodFields(t *testing.T) {
 func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
-
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
@@ -615,6 +626,7 @@ func TestExecStartup_pdValidAndFormatted_mountReadOnly(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
@@ -645,6 +657,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall(fmt.Sprintf("nsenter --mount=/host_proc/1/ns/mnt -- mount -o ro -t ext4 %s %s", GCE_PD_DEV_PATH, GCE_PD_HOST_MOUNT_PATH), "")
 
@@ -669,7 +682,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 func TestExecStartup_pdValidButMetadataNotFound(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
-
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
@@ -686,7 +699,7 @@ func TestExecStartup_pdValidButMetadataNotFound(t *testing.T) {
 func TestExecStartup_pdValidAndFormatted_attachedReadOnlyButReadWriteWanted(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
-
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 
@@ -707,6 +720,7 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 	devPath := GCE_PD_DEV_PATH + "-part8"
 	mockCommandRunner.RegisterDeviceForStat(devPath)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+devPath, "ext4")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+devPath, "")
 	mockCommandRunner.OutputOnCall("fsck.ext4 -p "+devPath, "fsck running running... done!")
@@ -733,6 +747,7 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 func TestExecStartup_pdNoSuchDevice(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -746,6 +761,7 @@ func TestExecStartup_pdNoSuchDevice(t *testing.T) {
 func TestExecStartup_pdUnsupportedFilesystem(t *testing.T) {
 	mockDockerClient := &MockDockerApi{}
 	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 
 	err := ExecStartupWithMocksAndFakes(
 		mockDockerClient,
@@ -762,6 +778,7 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("mkfs.ext4 "+GCE_PD_DEV_PATH, "omnomnom formatting formatting... done!")
@@ -792,6 +809,7 @@ func TestExecStartup_pdValidAndNotFormattedButMkfsFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.ErrorOnCall("mkfs.ext4 "+GCE_PD_DEV_PATH, fmt.Errorf("mkfs enters an infinite loop for a while"))
@@ -811,6 +829,7 @@ func TestExecStartup_pdValidButContainsSubpartitions(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "\next4\n")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "\n\n")
 	// Debug lsblk run:
@@ -831,6 +850,7 @@ func TestExecStartup_pdValidButAlreadyMounted(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "/somewhere/over/the/rainbow")
 
@@ -850,6 +870,7 @@ func TestExecStartup_pdValidButLsblkFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.ErrorOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, fmt.Errorf("SOMETHING WICKED THIS WAY COMES"))
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 
@@ -869,6 +890,7 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 	// Prepare the whole PD command chain.
 	mockCommandRunner.RegisterDeviceForStat(GCE_PD_DEV_PATH)
 	mockCommandRunner.RegisterMkdirAll(GCE_PD_HOST_MOUNT_PATH)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts", "")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o FSTYPE "+GCE_PD_DEV_PATH, "ext4")
 	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- lsblk -n -o MOUNTPOINT "+GCE_PD_DEV_PATH, "")
 	mockCommandRunner.OutputOnCall("fsck.ext4 -p "+GCE_PD_DEV_PATH, "fsck running running... done!")
@@ -880,6 +902,21 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 		GCE_PD_VOLUME_MANIFEST,
 		GCE_ATTACHED_RW_DISK_METADATA)
 	utils.AssertError(t, err, "Failed to start container: Volume pd1: Failed to mount /dev/disk/by-id/google-gce-pd-name-here at /mnt/disks/gce-containers-mounts/gce-persistent-disks/gce-pd-name-here: REFUSED TO MOUNT")
+}
+
+func TestExecStartup_unmountsExistingVolumes(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts",
+		"tmpfs /mnt/disks/gce-containers-mounts/tmpfss/volume tmpfs rw,nosuid,nodev 0 0")
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/tmpfss/volume", "")
+	err := ExecStartupWithMocksAndFakes(
+		mockDockerClient,
+		mockCommandRunner,
+		SIMPLE_MANIFEST,
+		SINGLE_DISK_METADATA)
+	utils.AssertNoError(t, err)
+	mockCommandRunner.AssertAllCalled()
 }
 
 func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
