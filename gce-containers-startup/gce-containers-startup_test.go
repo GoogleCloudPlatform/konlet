@@ -904,6 +904,21 @@ func TestExecStartup_pdValidButMountFails(t *testing.T) {
 	utils.AssertError(t, err, "Failed to start container: Volume pd1: Failed to mount /dev/disk/by-id/google-gce-pd-name-here at /mnt/disks/gce-containers-mounts/gce-persistent-disks/gce-pd-name-here: REFUSED TO MOUNT")
 }
 
+func TestExecStartup_unmountsExistingVolumes(t *testing.T) {
+	mockDockerClient := &MockDockerApi{}
+	mockCommandRunner := command.NewMockRunner(t)
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- cat /proc/mounts",
+		"tmpfs /mnt/disks/gce-containers-mounts/tmpfss/volume tmpfs rw,nosuid,nodev 0 0")
+	mockCommandRunner.OutputOnCall("nsenter --mount=/host_proc/1/ns/mnt -- umount /mnt/disks/gce-containers-mounts/tmpfss/volume", "")
+	err := ExecStartupWithMocksAndFakes(
+		mockDockerClient,
+		mockCommandRunner,
+		SIMPLE_MANIFEST,
+		SINGLE_DISK_METADATA)
+	utils.AssertNoError(t, err)
+	mockCommandRunner.AssertAllCalled()
+}
+
 func (api *MockDockerApi) assertDefaultOptions(t *testing.T) {
 	api.assertDefaultSystemOptions(t)
 	utils.AssertEqual(t, api.HostConfig.Privileged, false, "")
