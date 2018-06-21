@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
@@ -45,10 +44,6 @@ import (
 
 const DOCKER_UNIX_SOCKET = "unix:///var/run/docker.sock"
 const CONTAINER_NAME_PREFIX = "klt"
-
-var (
-	gcploggingFlag = flag.Bool("gcp-logging", true, "whether to configure GCP Logging")
-)
 
 // operationTimeout is the error returned when the docker operations are timeout.
 type operationTimeout struct {
@@ -261,9 +256,6 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 	}
 
 	logConfig := dockercontainer.LogConfig{}
-	if *gcploggingFlag {
-		logConfig.Type = "gcplogs"
-	}
 
 	restartPolicyName := "always"
 	autoRemove := false
@@ -294,7 +286,9 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 			AutoRemove:  autoRemove,
 			NetworkMode: "host",
 			Privileged:  container.SecurityContext.Privileged,
-			LogConfig:   logConfig,
+			LogConfig: dockercontainer.LogConfig{
+				Type: "json-file",
+			},
 			RestartPolicy: dockercontainer.RestartPolicy{
 				Name: restartPolicyName,
 			},
