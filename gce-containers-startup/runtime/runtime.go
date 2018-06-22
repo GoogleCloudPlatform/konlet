@@ -255,8 +255,6 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 		env = append(env, fmt.Sprintf("%s=%s", envVar.Name, envVar.Value))
 	}
 
-	logConfig := dockercontainer.LogConfig{}
-
 	restartPolicyName := "always"
 	autoRemove := false
 	if spec.RestartPolicy == nil || *spec.RestartPolicy == api.RestartPolicyAlways {
