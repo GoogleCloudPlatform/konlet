@@ -15,26 +15,29 @@
 # limitations under the License.
 
 readonly GET_METADATA_VALUE='/usr/share/google/get_metadata_value'
-readonly KONLET_VERSION_TAG='v.0.8-latest'
+readonly CONFIG_FILE='/etc/stackdriver/logging.config.d/konlet-docker-events.conf'
 
 SPEC=$(${GET_METADATA_VALUE} 'attributes/gce-container-declaration')
 if [[ $? -ne 0 ]]; then
-  echo 'No metadata present - not running containers'
+  echo 'No metadata present - not running Docker event collector.'
+  exit 0
+fi
+LOGGING_ENABLED=$(${GET_METADATA_VALUE} 'attributes/google-logging-enabled')
+if [[ $? -ne 0 || ${LOGGING_ENABLED} != 'true' ]]; then
+  echo 'Stackdriver Logging not enabled - not running Docker event collector.'
   exit 0
 fi
 
-ACTUAL_KONLET_VERSION=$(${GET_METADATA_VALUE} 'attributes/gce-container-runner-version-override')
-if [[ $? -ne 0 ]]; then
-  ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
+if [[ ! -f ${CONFIG_FILE} ]]; then
+  echo '# Collects logs generated from Docker events.
+<source>
+  @type systemd
+  filters [{ "_SYSTEMD_UNIT": "konlet-docker-events.service" }]
+  pos_file /var/log/google-fluentd/stackdriver-docker-events.log.pos
+  read_from_head true
+  tag cos_docker_events
+</source>' > ${CONFIG_FILE}
 fi
 
-docker run --rm --privileged \
-  --log-driver=json-file \
-  --net="host" \
-  -v=/var/run/docker.sock:/var/run/docker.sock \
-  -v=/etc/profile.d:/host/etc/profile.d \
-  -v=/dev:/dev \
-  -v=/mnt:/mnt \
-  -v=/proc:/host_proc \
-  "gcr.io/gce-containers/konlet:${ACTUAL_KONLET_VERSION}"
+exec /usr/bin/docker events
 
