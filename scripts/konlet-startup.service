@@ -14,8 +14,8 @@
 
 [Unit]
 Description=Containers on GCE Setup
-Wants=network-online.target google-startup-scripts.service gcr-online.target docker.socket
-After=network-online.target google-startup-scripts.service gcr-online.target docker.socket stackdriver-logging.service
+Wants=network-online.target google-startup-scripts.service gcr-online.target docker.socket docker-events-collector.service
+After=network-online.target google-startup-scripts.service gcr-online.target docker.socket docker-events-collector.service stackdriver-logging.service
 
 [Service]
 ExecStart=/usr/share/gce-containers/konlet-startup
