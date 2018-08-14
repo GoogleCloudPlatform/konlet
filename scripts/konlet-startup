@@ -23,6 +23,10 @@ if [[ $? -ne 0 ]]; then
   exit 0
 fi
 
+# Make sure that Docker events collector is running for Konlet (only if the
+# metadata is present).
+systemctl start docker-events-collector.service
+
 ACTUAL_KONLET_VERSION=$(${GET_METADATA_VALUE} 'attributes/gce-container-runner-version-override')
 if [[ $? -ne 0 ]]; then
   ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
