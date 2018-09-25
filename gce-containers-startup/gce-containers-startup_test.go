@@ -349,7 +349,7 @@ func TestExecStartup_simple(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -370,7 +370,7 @@ func TestExecStartup_runCommand(t *testing.T) {
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"ls"}), mockDockerClient.CreateRequest.Entrypoint, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"-l", "/tmp"}), mockDockerClient.CreateRequest.Cmd, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -391,7 +391,7 @@ func TestExecStartup_runArgs(t *testing.T) {
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"echo"}), mockDockerClient.CreateRequest.Entrypoint, "")
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"-n", "Hello \" world", "Welco'me"}), mockDockerClient.CreateRequest.Cmd, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -412,7 +412,7 @@ func TestExecStartup_env(t *testing.T) {
 	utils.AssertEqual(t, dockerstrslice.StrSlice([]string{"env"}), mockDockerClient.CreateRequest.Entrypoint, "")
 	utils.AssertEqual(t, []string{"VAR1=VAL1", "VAR2=VAL2"}, mockDockerClient.CreateRequest.Env, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -439,7 +439,7 @@ func TestExecStartup_volumeMounts(t *testing.T) {
 		"")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -463,7 +463,7 @@ func TestExecStartup_options(t *testing.T) {
 	utils.AssertEqual(t, mockDockerClient.HostConfig.Privileged, true, "")
 	utils.AssertEqual(t, mockDockerClient.CreateRequest.OpenStdin, true, "")
 	utils.AssertEqual(t, mockDockerClient.CreateRequest.Tty, true, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
 }
 
@@ -527,7 +527,7 @@ func TestExecStartup_restartPolicy(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/google-containers/busybox:latest", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultSystemOptions(t)
 	utils.AssertEqual(t, mockDockerClient.HostConfig.Privileged, false, "")
 	utils.AssertEqual(t, mockDockerClient.HostConfig.RestartPolicy.Name, "on-failure", "")
@@ -585,7 +585,7 @@ func TestExecStartup_ignorePodFields(t *testing.T) {
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.PulledImage, "")
 	utils.AssertEqual(t, "gcr.io/gce-containers/apache:v1", mockDockerClient.CreateRequest.Image, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 }
 
@@ -613,7 +613,7 @@ func TestExecStartup_pdValidAndFormatted(t *testing.T) {
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.AssertAllCalled()
@@ -644,7 +644,7 @@ func TestExecStartup_pdValidAndFormatted_mountReadOnly(t *testing.T) {
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.AssertAllCalled()
@@ -673,7 +673,7 @@ func TestExecStartup_pdValidAndFormatted_attachedReadOnly_mountReadOnly(t *testi
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1:ro"}, mockDockerClient.HostConfig.Binds, "")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.AssertAllCalled()
@@ -738,7 +738,7 @@ func TestExecStartup_pdWithPartitionValidAndFormatted(t *testing.T) {
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.AssertAllCalled()
@@ -796,7 +796,7 @@ func TestExecStartup_pdValidAndNotFormatted(t *testing.T) {
 	utils.AssertEqual(t, []string{GCE_PD_HOST_MOUNT_PATH + ":/tmp/pd1"}, mockDockerClient.HostConfig.Binds, "")
 	utils.AssertEmpty(t, mockDockerClient.HostConfig.Tmpfs, "")
 	utils.AssertEqual(t, MOCK_CONTAINER_ID, mockDockerClient.StartedContainer, "")
-	utils.AssertEqual(t, "", mockDockerClient.RemovedContainer, "")
+	utils.AssertEqual(t, MOCK_EXISTING_CONTAINER_ID, mockDockerClient.RemovedContainer, "")
 	mockDockerClient.assertDefaultOptions(t)
 
 	mockCommandRunner.AssertAllCalled()
