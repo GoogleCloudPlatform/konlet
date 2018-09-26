@@ -38,7 +38,7 @@ func Test_containersStartedByKonlet_DoesNotMatchOtherContainers(t *testing.T) {
 		generateContainerStruct(t, "1", "/kltsadashdk"),
 		generateContainerStruct(t, "2", "/user-container"),
 	}
-	returned := containersStartedByKonlet(containers, "container2")
+	returned := containersStartedByKonlet(containers, "container")
 	expected := map[string]string{}
 	utils.AssertEqual(t, returned, expected, "")
 }
