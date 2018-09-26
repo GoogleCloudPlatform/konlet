@@ -178,11 +178,11 @@ func deleteOldContainers(dockerClient DockerApiClient, rawName string) error {
 	}
 	idsNames := containersStartedByKonlet(containers, rawName)
 	if len(idsNames) == 0 {
-		log.Print("No containers to delete.\n")
+		log.Print("No containers created by previous runs of Konlet found.\n")
 		return nil
 	}
 	for id, name := range idsNames {
-		log.Printf("Removing previous container '%s' (ID: %s)\n", name, id)
+		log.Printf("Removing a container created by a previous run of Konlet: '%s' (ID: %s)\n", name, id)
 		rmOpts := dockertypes.ContainerRemoveOptions{
 			Force: true,
 		}
