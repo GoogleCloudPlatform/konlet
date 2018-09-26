@@ -165,40 +165,62 @@ func pullImage(dockerClient DockerApiClient, auth string, spec api.Container) er
 	return nil
 }
 
-func findIdForName(containers []dockertypes.Container, containerName string) (string, bool) {
-	var searchName = "/" + containerName
-	for _, container := range containers {
-		for _, name := range container.Names {
-			if name == searchName {
-				return container.ID, true
-			}
-		}
-	}
-	return "", false
-}
-
-func deleteOldContainer(dockerClient DockerApiClient, containerName string) error {
+// deleteOldContainers deletes all containers started by konlet.
+// rawName is a container name without any generate prefixes or suffixes.
+func deleteOldContainers(dockerClient DockerApiClient, rawName string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	listOpts := dockertypes.ContainerListOptions{All: true}
-	resp, err := dockerClient.ContainerList(ctx, listOpts)
-
+	containers, err := dockerClient.ContainerList(ctx, listOpts)
 	if err != nil {
 		return err
 	}
-
-	containerID, exists := findIdForName(resp, containerName)
-	if !exists {
-		log.Printf("Container with name '%s' has not yet been run.\n", containerName)
+	idsNames := containersStartedByKonlet(containers, rawName)
+	if len(idsNames) == 0 {
+		log.Print("No containers created by previous runs of Konlet found.\n")
 		return nil
 	}
-
-	log.Printf("Removing previous container '%s' (ID: %s)\n", containerName, containerID)
-	rmOpts := dockertypes.ContainerRemoveOptions{
-		Force: true,
+	for id, name := range idsNames {
+		log.Printf("Removing a container created by a previous run of Konlet: '%s' (ID: %s)\n", name, id)
+		rmOpts := dockertypes.ContainerRemoveOptions{
+			Force: true,
+		}
+		if err := dockerClient.ContainerRemove(ctx, id, rmOpts); err != nil {
+			return err
+		}
 	}
-	return dockerClient.ContainerRemove(ctx, containerID, rmOpts)
+	return nil
+}
+
+// containersStartedByKonlet filters a given list of containers to return a map
+// from container id to container name for containers started by konlet.
+// These are all containers whose names match one of two cases:
+// 1. the name starts with '/klt-',
+// 2. the name is '/<rawName>', where rawName is a legacy container name passed as an argument.
+// NOTE: The reason for the leading slash is Docker's convention of adding these
+// to names specified by the user.
+// NOTE: The reason for two cases above is that historically konlet started
+// containers without prefixes or suffixes and it would fail to delete an old
+// container after system update to a newer version if it only looked for the prefix.
+// See https://github.com/GoogleCloudPlatform/konlet/issues/50
+func containersStartedByKonlet(containers []dockertypes.Container, rawName string) map[string]string {
+	var (
+		// Matches containers started by konlet.
+		namePattern1 = "/klt-"
+		// The legacy pattern, see the comment on top of the function.
+		namePattern2 = "/" + rawName
+	)
+	idsNames := make(map[string]string)
+	for _, container := range containers {
+		for _, name := range container.Names {
+			if strings.HasPrefix(name, namePattern1) || name == namePattern2 {
+				idsNames[container.ID] = name
+				break
+			}
+		}
+	}
+	return idsNames
 }
 
 func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpecStruct) (string, error) {
@@ -214,7 +236,7 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 		return "", err
 	}
 
-	if err := deleteOldContainer(runner.Client, generatedContainerName); err != nil {
+	if err := deleteOldContainers(runner.Client, container.Name); err != nil {
 		return "", err
 	}
 

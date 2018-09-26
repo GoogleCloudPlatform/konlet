@@ -35,3 +35,16 @@ go_library(
         "//gce-containers-startup/volumes",
     ],
 )
+
+go_test(
+    name = "runtime_test",
+    srcs = [
+        "runtime_test.go",
+    ],
+    embed = [":runtime"],
+    importpath = "github.com/GoogleCloudPlatform/konlet/gce-containers-startup/runtime",
+    deps = [
+        "//gce-containers-startup/utils:go_default_library",
+        "//gce-containers-startup/vendor:github.com/docker/engine-api/types",
+    ],
+)
