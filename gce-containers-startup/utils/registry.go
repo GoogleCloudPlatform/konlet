@@ -16,9 +16,10 @@ package utils
 
 import "strings"
 
-// Returns true iff the provided image string points to repository
-// that uses a GCP token. Currently, that is:
+// UseGcpTokenForImage returns true iff the provided image string points to
+// a repository that uses a GCP token. Currently, that is:
 //  - gcr.io
+//  - pkg.dev
 func UseGcpTokenForImage(image string) bool {
 	parts := strings.SplitN(image, "/", 2)
 
@@ -28,5 +29,5 @@ func UseGcpTokenForImage(image string) bool {
 
 	hostname := strings.ToLower(parts[0])
 
-	return hostname == "gcr.io" || strings.HasSuffix(hostname, ".gcr.io")
+	return hostname == "gcr.io" || strings.HasSuffix(hostname, ".gcr.io") || strings.HasSuffix(hostname, ".pkg.dev")
 }

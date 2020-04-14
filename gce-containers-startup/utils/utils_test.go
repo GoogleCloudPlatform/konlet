@@ -43,6 +43,13 @@ func TestDefaultRegistry_gcr(t *testing.T) {
 	assertRegistryGetsToken(t, "oh.my.this-is-not-gcr.io/other-containers/busybox", false)
 }
 
+func TestDefaultRegistry_ar(t *testing.T) {
+	assertRegistryGetsToken(t, "us-docker.pkg.dev/project/google-containers/nginx", true)
+	assertRegistryGetsToken(t, "us-west1-docker.pkg.dev/project/google-containers/nginx:1.2", true)
+	assertRegistryGetsToken(t, "australia-southeast1-docker.pkg.dev/project/other-containers/busybox", true)
+	assertRegistryGetsToken(t, "not-docker-pkg.dev/project/other-containers/busybox", false)
+}
+
 func assertRegistryGetsToken(t *testing.T, image string, expectedToken bool) {
 	AssertEqual(t,
 		UseGcpTokenForImage(image),
