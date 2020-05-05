@@ -4,7 +4,6 @@ licenses(["notice"])
 
 load(
     "@io_bazel_rules_go//go:def.bzl",
-    "cgo_genrule",
     "go_library",
 )
 
