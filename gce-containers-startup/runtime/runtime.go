@@ -309,6 +309,10 @@ func createContainer(runner ContainerRunner, auth string, spec api.ContainerSpec
 			Privileged:  container.SecurityContext.Privileged,
 			LogConfig: dockercontainer.LogConfig{
 				Type: "json-file",
+				Config: map[string]string{
+					"max-size": "500m",
+					"max-file": "3",
+				},
 			},
 			RestartPolicy: dockercontainer.RestartPolicy{
 				Name: restartPolicyName,
