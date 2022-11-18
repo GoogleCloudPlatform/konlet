@@ -22,8 +22,6 @@ load(
     "go_library",
     "go_test",
 )
-load("@io_bazel_rules_docker//docker:docker.bzl", "docker_build")
-load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 go_binary(
     name = "gce-containers-startup",
