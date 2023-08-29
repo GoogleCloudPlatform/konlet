@@ -45,7 +45,7 @@ function get_metadata_value() {
   print_metadata_value_if_exists ${MDS_PREFIX}/instance/${varname}
   return_code=$?
   # If the instance doesn't have the value, try the project.
-  if [[ ${return_code} != 0 ]]; then
+  if [[ ${return_code} != 0 && ${return_code} != 6 && ${return_code} != 7 ]]; then
     print_metadata_value_if_exists ${MDS_PREFIX}/project/${varname}
     return_code=$?
   fi
