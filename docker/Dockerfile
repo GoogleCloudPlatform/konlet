@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/google_containers/debian-base-amd64:0.3
+# The repository does not use version tags, so the only way to pin a version is to use the full hash.
+# The hash below is 'latest' as of 2023-03-15
+FROM  marketplace.gcr.io/google/debian12@sha256:f523b2f67ae213feb32db4f12ac0af245e89938b3912439a28ca8762c5a67d2a
 
 RUN apt-get update && apt-get install -y iptables mount e2fsprogs util-linux
 COPY gce-containers-startup /bin/gce-containers-startup
