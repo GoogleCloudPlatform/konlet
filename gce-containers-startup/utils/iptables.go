@@ -17,8 +17,8 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
-	"os/getenv"
 )
 
 func printOutput(outs []byte) {
