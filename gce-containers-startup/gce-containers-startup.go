@@ -92,6 +92,10 @@ func ExecStartup(metadataProvider metadata.Provider, authProvider utils.AuthProv
 	}
 
 	if openIptables {
+		err = utils.InitIpTables()
+		if err != nil {
+			return fmt.Errorf("Cannot init IPtables: %v", err)
+		}
 		err = utils.OpenIptables()
 		if err != nil {
 			return fmt.Errorf("Cannot update IPtables: %v", err)

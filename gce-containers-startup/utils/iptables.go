@@ -18,12 +18,37 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"os/getenv"
 )
 
 func printOutput(outs []byte) {
 	if len(outs) > 0 {
 		fmt.Printf("iptables command output: %s\n", string(outs))
 	}
+}
+
+//COS milestone 113 started to use iptables-nft vs iptables-legacy
+//This function reads the env variable passed to konlet from the host OS
+//with the host OS iptables version and makes the switch to legacy when needed.
+funct InitIpTables() error {
+	log.Print("Determining the iptables version")
+	var iptables = os.getenv("HOST_IPTABLES")
+	if iptables == nil {
+		return "HOST_IPTABLES environment variable is not test - cannot determine the version"
+	} 
+	if iptables == "legacy" {
+		log.Print("Detected legacy iptables on the host OS. Switching to legacy iptables.")
+		var cmd = exec.Command("update-alternatives --set iptables /usr/sbin/iptables-legacy")
+		var output, err = cmd.CombinedOutput()
+
+		if err != nil {
+			return err
+		}
+	}
+	else {
+		log.Print("Detected nf_tables on the host OS. Staying on the nf_tables.")
+	} 
+	return nil
 }
 
 func OpenIptablesForProtocol(protocol string) error {
