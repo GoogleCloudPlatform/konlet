@@ -30,7 +30,7 @@ func printOutput(outs []byte) {
 //COS milestone 113 started to use iptables-nft vs iptables-legacy
 //This function reads the env variable passed to konlet from the host OS
 //with the host OS iptables version and makes the switch to legacy when needed.
-funct InitIpTables() error {
+func InitIpTables() error {
 	log.Print("Determining the iptables version")
 	var iptables = os.getenv("HOST_IPTABLES")
 	if iptables == nil {
