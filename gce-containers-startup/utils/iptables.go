@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -31,45 +32,46 @@ func printOutput(outs []byte) {
 //This function reads the env variable passed to konlet from the host OS
 //with the host OS iptables version and makes the switch to legacy when needed.
 func InitIpTables() error {
-	log.Print("Determining the iptables version")
-	var iptables = os.getenv("HOST_IPTABLES")
-	if iptables == nil {
-		return "HOST_IPTABLES environment variable is not test - cannot determine the version"
-	} 
-	if iptables == "legacy" {
-		log.Print("Detected legacy iptables on the host OS. Switching to legacy iptables.")
-		var cmd = exec.Command("update-alternatives --set iptables /usr/sbin/iptables-legacy")
-		var output, err = cmd.CombinedOutput()
+        log.Print("Determining the iptables version")
+        var iptables = os.Getenv("HOST_IPTABLES")
+        if iptables == "" {
+                return errors.New("HOST_IPTABLES environment variable is not test - cannot determine the version")
+        } 
+        if iptables == "legacy" {
+                log.Print("Detected legacy iptables on the host OS. Switching to legacy iptables.")
+                var cmd = exec.Command("update-alternatives --set iptables /usr/sbin/iptables-legacy")
+                var output, err = cmd.CombinedOutput()
 
-		if err != nil {
-			return err
-		}
-	} else {
-		log.Print("Detected nf_tables on the host OS. Staying on the nf_tables.")
-	} 
-	return nil
+                if err != nil {
+                        return err
+                }
+                log.Printf("%s\n", output)
+        } else {
+                log.Print("Detected nf_tables on the host OS. Staying on the nf_tables.")
+        } 
+        return nil
 }
 
 func OpenIptablesForProtocol(protocol string) error {
-	log.Printf("Updating IPtables firewall rules - allowing %s traffic on all ports", protocol)
-	// TODO: Make it use osCommandRunner.
-	var cmd = exec.Command("iptables", "-A", "INPUT", "-p", protocol, "-j", "ACCEPT")
-	var output, err = cmd.CombinedOutput()
+        log.Printf("Updating IPtables firewall rules - allowing %s traffic on all ports", protocol)
+        // TODO: Make it use osCommandRunner.
+        var cmd = exec.Command("iptables", "-A", "INPUT", "-p", protocol, "-j", "ACCEPT")
+        var output, err = cmd.CombinedOutput()
 
-	if err != nil {
-		return err
-	}
-	// TODO(gjaskiewicz): check exit status and return an error
-	printOutput(output)
+        if err != nil {
+                return err
+        }
+        log.Printf("%s\n", output)
 
-	cmd = exec.Command("iptables", "-A", "FORWARD", "-p", protocol, "-j", "ACCEPT")
-	output, err = cmd.CombinedOutput()
+        cmd = exec.Command("iptables", "-A", "FORWARD", "-p", protocol, "-j", "ACCEPT")
+        output, err = cmd.CombinedOutput()
 
-	if err != nil {
-		return err
-	}
+        log.Printf("%s\n", output)
 
-	return nil
+        if err != nil {
+                return err
+        }
+        return nil
 }
 
 func OpenIptables() error {
