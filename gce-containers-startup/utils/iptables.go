@@ -44,8 +44,7 @@ func InitIpTables() error {
 		if err != nil {
 			return err
 		}
-	}
-	else {
+	} else {
 		log.Print("Detected nf_tables on the host OS. Staying on the nf_tables.")
 	} 
 	return nil
