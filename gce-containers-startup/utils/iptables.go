@@ -35,7 +35,7 @@ func InitIpTables() error {
         log.Print("Determining the iptables version")
         var iptables = os.Getenv("HOST_IPTABLES")
         if iptables == "" {
-                return errors.New("HOST_IPTABLES environment variable is not test - cannot determine the version")
+                return errors.New("HOST_IPTABLES environment variable is not set - cannot determine the version to be used in konlet")
         } 
         if iptables == "legacy" {
                 log.Print("Detected legacy iptables on the host OS. Switching to legacy iptables.")
