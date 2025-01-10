@@ -32,7 +32,9 @@ if [[ $? -ne 0 ]]; then
   ACTUAL_KONLET_VERSION="${KONLET_VERSION_TAG}"
 fi
 
-docker run --rm --privileged \
+HOST_IPTABLES=$(iptables -V | grep -q "nf_tables" && echo "nf_tables" || echo "legacy")
+
+docker run -e ${HOST_IPTABLES} \
   --log-driver=json-file \
   --net="host" \
   -v=/var/run/docker.sock:/var/run/docker.sock \
