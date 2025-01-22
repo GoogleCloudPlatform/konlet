@@ -35,6 +35,8 @@ fi
 HOST_IPTABLES=$(iptables -V | grep -q "nf_tables" && echo "nf_tables" || echo "legacy")
 
 docker run -e HOST_IPTABLES=${HOST_IPTABLES} \
+  --rm \
+  --privileged \
   --log-driver=json-file \
   --net="host" \
   -v=/var/run/docker.sock:/var/run/docker.sock \
