@@ -45,4 +45,3 @@ docker run -e HOST_IPTABLES=${HOST_IPTABLES} \
   -v=/mnt:/mnt \
   -v=/proc:/host_proc \
   "gcr.io/gce-containers/konlet:${ACTUAL_KONLET_VERSION}"
-
