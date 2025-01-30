@@ -39,7 +39,8 @@ func InitIpTables() error {
         } 
         if iptables == "legacy" {
                 log.Print("Detected legacy iptables on the host OS. Switching to legacy iptables.")
-                var cmd = exec.Command("update-alternatives --set iptables /sbin/iptables-legacy")
+                var cmd = exec.Command("update-alternatives", "--set", "iptables", "/usr/sbin/iptables-legacy")
+
                 var output, err = cmd.CombinedOutput()
 
                 if err != nil {
