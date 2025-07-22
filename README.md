@@ -1,4 +1,4 @@
-# Compute Engine Container Startup Agent
+# DEPRECATED Compute Engine Container Startup Agent
 
 The Compute Engine container startup agent starts a container deployed on a VM
 instance using [Deploying Containers on VMs and Managed Instance Groups](
