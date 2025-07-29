@@ -1,5 +1,11 @@
 # Compute Engine Container Startup Agent
 
+> [!NOTE]
+> The container startup agent is deprecated. To configure and deploy a container on VM
+or on VMs in a MIG during VM creation, use a startup script or cloud-init. You can also consider
+using one of the managed services such as Google Kubernetes Engine (GKE) or Batch to run containers on the VM.
+For more information, see [Migrate containers that were deployed on VMs during VM creation](https://cloud.google.com/compute/docs/containers/migrate-containers).
+
 The Compute Engine container startup agent starts a container deployed on a VM
 instance using [Deploying Containers on VMs and Managed Instance Groups](
 https://cloud.google.com/compute/docs/instance-groups/deploying-docker-containers) method.
